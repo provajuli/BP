@@ -3,89 +3,63 @@ import csv
 import math
 import random
 import colorsys
-import skia
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from io import BytesIO
 import mglyph as mg
 
-"""
-    Random generovani glyphu bez pocitadla, neomezene generovani
-"""
-
+# Registrace glyphu
 def horizontal_line(x: float, canvas:mg.Canvas) -> None:
     canvas.line((mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter),    # line start
                 (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter),   # line end
                 linecap='round', width='30p', color='navy')
 
+def simple_scaled_square(x: float, canvas: mg.Canvas) -> None:
+    tl = (mg.lerp(x, 0.0, -1), mg.lerp(x, 0.0, -1.0))
+    br = (mg.lerp(x, 0, 1), mg.lerp(x, 0, 1))
+
+    # canvas.rect(tl, br, color=(0,1,0,0.7))
+    canvas.rect(tl, br, color=(1, 0, 0, 1))
+
 
 def simple_scaled_star(x: float, canvas: mg.Canvas) -> None:
-    canvas.tr.translate(0, mg.lerp(x, 0, 0.05))
-    radius = mg.lerp(x, 0.01, canvas.ysize / 2)
-    vertices: list[tuple[float, float]] = []
+    radius = mg.lerp(x, 0, 1)
+    vertices = []
     for segment in range(5):
-        vertices.append(mg.orbit(canvas.center, segment * 2 * math.pi / 5, radius))
-        inner_r = math.cos(2 * math.pi / 5) / math.cos(math.pi / 5) * radius
-        vertices.append(
-            mg.orbit(canvas.center, (segment + 0.5) * 2 * math.pi / 5, inner_r)
-        )
-    canvas.lines(vertices, closed=True, width="2pt", linecap="round", color="indigo")
+        vertices.append(mg.orbit(canvas.center, segment * 2*math.pi/5, radius))
+        vertices.append(mg.orbit(canvas.center, (segment + 0.5) * 2*math.pi/5, math.cos(2*math.pi/5)/math.cos(math.pi/5) * radius))
+    canvas.polygon(vertices, color=(1,0,0,0.25))
 
 
 def simple_scaled_circle(x: float, canvas: mg.Canvas) -> None:
-    radius = mg.lerp(x, 0.01, canvas.ysize / 2)
-    canvas.circle(canvas.center, radius, fill="white", stroke="navy", stroke_width="15p")
-
-
-def simple_scaled_square(x: float, canvas: mg.Canvas) -> None:
-    half_side = mg.lerp(x, 0.01, min(canvas.xsize, canvas.ysize) / 2)
-    left = canvas.xcenter - half_side
-    right = canvas.xcenter + half_side
-    top = canvas.ycenter - half_side
-    bottom = canvas.ycenter + half_side
-    canvas.lines(
-        [(left, top), (right, top), (right, bottom), (left, bottom)],
-        closed=True,
-        width="15p",
-        linecap="round",
-        color="darkslategray",
-    )
+    canvas.circle(canvas.center, mg.lerp(x, 0, 1), color='red', style='stroke', width='5p')
 
 
 def simple_colour_patch(x: float, canvas: mg.Canvas) -> None:
     hue = x / 100  # 0 red
     r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-    colour = f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
+    color = f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
     canvas.rect(
         (canvas.xleft, canvas.ytop),
         (canvas.xright, canvas.ybottom),
-        fill=colour,
-        stroke="black",
-        stroke_width="5p",
+        color=color,
+        style="fill",
     )
 
 glyphs = {
     "line": horizontal_line,
+    "star": simple_scaled_star,
+    "circle": simple_scaled_circle,
+    "square": simple_scaled_square,
+    "colour_patch": simple_colour_patch,
 }
 
-def render_png(glyph_type: str, x: float, *, dpi: float | None = None) -> bytes:
-    if glyph_type not in glyphs:
-        raise KeyError(f"Unknown glyph_type '{glyph_type}'")
-    
-    # 1. Vytvoř canvas a vykresli glyph
-    canvas = mg.Canvas((256, 256))  # nebo jiný rozměr
-    glyphs[glyph_type](x, canvas)
-
-    # 2. Získání rastrového výřezu
-    raster = canvas.make_raster(canvas.top_left, canvas.bottom_right)
-
-    # 3. Převedení bitmapy na PNG data
-    image = skia.Image.MakeFromBitmap(raster._bitmap)
-    png_data = image.encodeToData()  # Skia vrací skia.Data
-
-    if png_data is None:
-        raise RuntimeError("Failed to encode canvas to PNG")
-
-    return bytes(png_data)
+def render_png(glyph_type: str, x: float) -> bytes:
+    result = mg.render(glyphs[glyph_type], (96, 96), [x])
+    pil_img = result[0]["pil"]
+    buf = BytesIO()
+    pil_img.save(buf, format="PNG")
+    return buf.getvalue()
 
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
@@ -172,8 +146,8 @@ class MainWindow(QtWidgets.QWidget):
 
         # generovani nahodnych velikosti pro glyphy A a C
         while True:
-            self.sizeA = random.randint(0, 100)
-            self.sizeC = random.randint(0, 100)
+            self.sizeA = random.randint(1, 100)
+            self.sizeC = random.randint(1, 100)
             if (self.sizeA < self.sizeC) or (self.sizeA > self.sizeC):
                 break
 
@@ -182,7 +156,7 @@ class MainWindow(QtWidgets.QWidget):
         self.glyphC.set_value(self.sizeC)
 
         # setup velikosti pro glyph B na prumer velikosti glyphu A a C
-        self.sizeB = 0
+        self.sizeB = 1
         self.glyphB.set_value(self.sizeB)
 
         self.update_counter_label()
@@ -201,6 +175,7 @@ class MainWindow(QtWidgets.QWidget):
 class GlyphWidget(QtWidgets.QWidget):
     def __init__(self, glyph_type: str, value: float, editable: bool = False):
         super().__init__()
+
         self.glyph_type = glyph_type
         self.value = value
         self.editable = editable
@@ -237,7 +212,7 @@ class GlyphWidget(QtWidgets.QWidget):
 
     def wheelEvent(self, event):
         if self.editable:
-            step = 1
+            step = 0.5
             delta = step if event.angleDelta().y() > 0 else -step
             self.set_value(min(100, max(0, self.value + delta)))
             self.update_image()
