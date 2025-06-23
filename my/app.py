@@ -91,10 +91,15 @@ class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
 
-        self.results = []
-        self.index = 1
+        self.results = [] # pole pro ukladani csv vysledku 
+        self.index = 1 # csv index
+        self.glyph_order = [] # serazeni typu glyphu 
+        for glyph_type in glyphs:
+            self.glyph_order.extend([glyph_type] * 20)
+        random.shuffle(self.glyph_order)
+        self.glyph_index = 0 # pro pocitadlo
 
-        self.setWindowTitle("Pokus")
+        self.setWindowTitle("Experiment")
         self.setGeometry(600, 300, 900, 500)
 
         main_layout = QtWidgets.QVBoxLayout(self)
@@ -109,22 +114,27 @@ class MainWindow(QtWidgets.QWidget):
         self.glyphC = GlyphWidget("line", 100, editable = False)
         glyph_layout.addWidget(self.glyphC)
 
+        self.counter_label = QtWidgets.QLabel()
+        self.counter_label.setAlignment(QtCore.Qt.AlignCenter)
+        font = QtGui.QFont()
+        font.setPointSize(12)
+        font.setBold(True)
+        self.counter_label.setFont(font)
+        main_layout.addWidget(self.counter_label)
+
         glyph_wrapper = QtWidgets.QHBoxLayout()
         glyph_wrapper.addStretch()
         glyph_wrapper.addLayout(glyph_layout)
         glyph_wrapper.addStretch()
-
         main_layout.addLayout(glyph_wrapper)
 
         button_layout = QtWidgets.QHBoxLayout()
-
         self.btn_next = QtWidgets.QPushButton("Next")
         self.btn_next.clicked.connect(self.new_example)
         
         button_layout.addStretch()
         button_layout.addWidget(self.btn_next)
         button_layout.addStretch()
-
         main_layout.addLayout(button_layout)
 
         self.new_example()
@@ -143,23 +153,39 @@ class MainWindow(QtWidgets.QWidget):
             }
             self.results.append(result)
             self.index += 1
+        
+        # ukonceni experimentu
+        if self.glyph_index >= len(self.glyph_order):
+            QtWidgets.QMessageBox.information(self, "Done", "Results saved to results.csv")
+            self.close()
+            return
 
+        # pokracovani experimentu
+        glyph_type = self.glyph_order[self.glyph_index]
+        self.glyph_index += 1
+        self.current_glyph_type = glyph_type
+
+        # nastaveni stejneho glyphu pro trojici glyphu
         self.glyphA.set_type(glyph_type)
         self.glyphB.set_type(glyph_type)
         self.glyphC.set_type(glyph_type)
 
+        # generovani nahodnych velikosti pro glyphy A a C
         while True:
             self.sizeA = random.randint(0, 100)
             self.sizeC = random.randint(0, 100)
-            if self.sizeA < self.sizeC:
+            if (self.sizeA < self.sizeC) or (self.sizeA > self.sizeC):
                 break
 
+        # nastaveni pevne velikosti pro glyphy A a C
         self.glyphA.set_value(self.sizeA)
         self.glyphC.set_value(self.sizeC)
 
-        middle_size = (self.sizeA + self.sizeC) / 2 # TODO resit 0.5 pri scrollovani koleckem? udelat scrollovani po 0.5?
-        self.sizeB = middle_size
-        self.glyphB.set_value(middle_size)
+        # setup velikosti pro glyph B na prumer velikosti glyphu A a C
+        self.sizeB = 0
+        self.glyphB.set_value(self.sizeB)
+
+        self.update_counter_label()
 
     def save_results(self, filename="vysledky.csv"):
         with open(filename, "w", newline="") as csvfile:
@@ -168,13 +194,16 @@ class MainWindow(QtWidgets.QWidget):
             writer.writeheader()
             writer.writerows(self.results)
 
+    def update_counter_label(self):
+        total = len(self.glyph_order)
+        self.counter_label.setText(f"{self.index} z {total}")
+
 class GlyphWidget(QtWidgets.QWidget):
     def __init__(self, glyph_type: str, value: float, editable: bool = False):
         super().__init__()
         self.glyph_type = glyph_type
         self.value = value
         self.editable = editable
-        self.value_changed_callback = None
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setAlignment(QtCore.Qt.AlignHCenter)
@@ -191,8 +220,6 @@ class GlyphWidget(QtWidgets.QWidget):
     def set_value(self, value: float):
         self.value = max(0, min(100, value))
         self.update_image()
-        if self.value_changed_callback:
-            self.value_changed_callback(value)
 
     def set_type(self, glyph_type: str):
         if glyph_type in glyphs:
@@ -214,7 +241,6 @@ class GlyphWidget(QtWidgets.QWidget):
             delta = step if event.angleDelta().y() > 0 else -step
             self.set_value(min(100, max(0, self.value + delta)))
             self.update_image()
-
 
 app = QtWidgets.QApplication(sys.argv)
 window = MainWindow()
