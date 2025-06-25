@@ -18,17 +18,16 @@ def simple_scaled_square(x: float, canvas: mg.Canvas) -> None:
     tl = (mg.lerp(x, 0.0, -1), mg.lerp(x, 0.0, -1.0))
     br = (mg.lerp(x, 0, 1), mg.lerp(x, 0, 1))
 
-    # canvas.rect(tl, br, color=(0,1,0,0.7))
     canvas.rect(tl, br, color=(1, 0, 0, 1))
 
 
 def simple_scaled_star(x: float, canvas: mg.Canvas) -> None:
-    radius = mg.lerp(x, 0, 1)
+    radius = mg.lerp(x, 0.2, canvas.ysize/2)
     vertices = []
     for segment in range(5):
         vertices.append(mg.orbit(canvas.center, segment * 2*math.pi/5, radius))
         vertices.append(mg.orbit(canvas.center, (segment + 0.5) * 2*math.pi/5, math.cos(2*math.pi/5)/math.cos(math.pi/5) * radius))
-    canvas.polygon(vertices, color=(1,0,0,0.25))
+    canvas.polygon(vertices, color=(1,0,0,0.25), closed=True, width='30p')
 
 
 def simple_scaled_circle(x: float, canvas: mg.Canvas) -> None:
@@ -46,12 +45,16 @@ def simple_colour_patch(x: float, canvas: mg.Canvas) -> None:
         style="fill",
     )
 
+def simple_polygon(x: float, canvas: mg.Canvas) -> None:
+    l = (mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter)
+    ct = (canvas.xcenter, -0.2)
+    r = (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter)
+    cb = (canvas.xcenter, 0.1)
+    canvas.polygon([l, cb, r, ct], color='#A2a', closed=True)
+
 glyphs = {
     "line": horizontal_line,
-    "star": simple_scaled_star,
-    "circle": simple_scaled_circle,
-    "square": simple_scaled_square,
-    "colour_patch": simple_colour_patch,
+    "polygon": simple_polygon,
 }
 
 def render_png(glyph_type: str, x: float) -> bytes:
@@ -122,7 +125,7 @@ class MainWindow(QtWidgets.QWidget):
                 'index': self.index,
                 'glyph_type': glyph_type,
                 'sizeA': self.sizeA,
-                'sizeB': self.sizeB,
+                'sizeB': self.glyphB.value,
                 'sizeC': self.sizeC,
             }
             self.results.append(result)
@@ -146,8 +149,8 @@ class MainWindow(QtWidgets.QWidget):
 
         # generovani nahodnych velikosti pro glyphy A a C
         while True:
-            self.sizeA = random.randint(1, 100)
-            self.sizeC = random.randint(1, 100)
+            self.sizeA = random.uniform(0.5, 100)
+            self.sizeC = random.uniform(0.5, 100)
             if (self.sizeA < self.sizeC) or (self.sizeA > self.sizeC):
                 break
 
@@ -207,7 +210,7 @@ class GlyphWidget(QtWidgets.QWidget):
         image = render_png(self.glyph_type, self.value)
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(image)
-        self.image_label.setPixmap(pixmap)
+        self.image_label.setPixmap(pixmap) # DEBUG
         self.value_label.setText(f"DEBUG: {self.value:.1f}") # DEBUG
 
     def wheelEvent(self, event):
