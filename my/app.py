@@ -10,32 +10,36 @@ import mglyph as mg
 
 # Registrace glyphu
 def horizontal_line(x: float, canvas:mg.Canvas) -> None:
-    canvas.line((mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter),    # line start
-                (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter),   # line end
+    canvas.line((mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter),    
+                (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter),   
                 linecap='round', width='30p', color='navy')
 
 def simple_scaled_square(x: float, canvas: mg.Canvas) -> None:
     tl = (mg.lerp(x, 0.0, -1), mg.lerp(x, 0.0, -1.0))
     br = (mg.lerp(x, 0, 1), mg.lerp(x, 0, 1))
 
-    canvas.rect(tl, br, color=(1, 0, 0, 1))
+    canvas.rect(tl, br, color='blue', width='20p')
 
+def simple_scaled_circle(x: float, canvas: mg.Canvas) -> None:
+    canvas.circle(canvas.center, mg.lerp(x, 0, 1), color='red', style='stroke', width='20p')
 
 def simple_scaled_star(x: float, canvas: mg.Canvas) -> None:
-    radius = mg.lerp(x, 0.2, canvas.ysize/2)
+    radius = mg.lerp(x, 0, canvas.ysize/2)
     vertices = []
     for segment in range(5):
         vertices.append(mg.orbit(canvas.center, segment * 2*math.pi/5, radius))
         vertices.append(mg.orbit(canvas.center, (segment + 0.5) * 2*math.pi/5, math.cos(2*math.pi/5)/math.cos(math.pi/5) * radius))
     canvas.polygon(vertices, color=(1,0,0,0.25), closed=True, width='30p')
 
-
-def simple_scaled_circle(x: float, canvas: mg.Canvas) -> None:
-    canvas.circle(canvas.center, mg.lerp(x, 0, 1), color='red', style='stroke', width='5p')
-
+def simple_polygon(x: float, canvas: mg.Canvas) -> None:
+    l = (mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter)
+    ct = (canvas.xcenter, -0.2)
+    r = (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter)
+    cb = (canvas.xcenter, 0.1)
+    canvas.polygon([l, cb, r, ct], color='#A2a', closed=True)
 
 def simple_colour_patch(x: float, canvas: mg.Canvas) -> None:
-    hue = x / 100  # 0 red
+    hue = x / 100
     r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
     color = f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
     canvas.rect(
@@ -45,15 +49,11 @@ def simple_colour_patch(x: float, canvas: mg.Canvas) -> None:
         style="fill",
     )
 
-def simple_polygon(x: float, canvas: mg.Canvas) -> None:
-    l = (mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter)
-    ct = (canvas.xcenter, -0.2)
-    r = (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter)
-    cb = (canvas.xcenter, 0.1)
-    canvas.polygon([l, cb, r, ct], color='#A2a', closed=True)
-
 glyphs = {
     "line": horizontal_line,
+    "square": simple_scaled_square,
+    "circle": simple_scaled_circle,
+    "star": simple_scaled_star,
     "polygon": simple_polygon,
 }
 
@@ -149,8 +149,8 @@ class MainWindow(QtWidgets.QWidget):
 
         # generovani nahodnych velikosti pro glyphy A a C
         while True:
-            self.sizeA = random.uniform(0.5, 100)
-            self.sizeC = random.uniform(0.5, 100)
+            self.sizeA = random.randint(1, 100)
+            self.sizeC = random.randint(1, 100)
             if (self.sizeA < self.sizeC) or (self.sizeA > self.sizeC):
                 break
 
@@ -189,9 +189,9 @@ class GlyphWidget(QtWidgets.QWidget):
         self.image_label = QtWidgets.QLabel()
         layout.addWidget(self.image_label)
 
-        self.value_label = QtWidgets.QLabel() # DEBUG
-        self.value_label.setAlignment(QtCore.Qt.AlignCenter) # DEBUG
-        layout.addWidget(self.value_label) # DEBUG
+        #self.value_label = QtWidgets.QLabel() # DEBUG
+        #self.value_label.setAlignment(QtCore.Qt.AlignCenter) # DEBUG
+        #layout.addWidget(self.value_label) # DEBUG
 
         self.update_image()
 
@@ -210,12 +210,12 @@ class GlyphWidget(QtWidgets.QWidget):
         image = render_png(self.glyph_type, self.value)
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(image)
-        self.image_label.setPixmap(pixmap) # DEBUG
-        self.value_label.setText(f"DEBUG: {self.value:.1f}") # DEBUG
+        self.image_label.setPixmap(pixmap)
+        #self.value_label.setText(f"DEBUG: {self.value:.1f}") # DEBUG
 
     def wheelEvent(self, event):
         if self.editable:
-            step = 0.5
+            step = 1
             delta = step if event.angleDelta().y() > 0 else -step
             self.set_value(min(100, max(0, self.value + delta)))
             self.update_image()
