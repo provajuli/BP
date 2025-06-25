@@ -164,7 +164,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_counter_label()
 
-    def save_results(self, filename="vysledky.csv"):
+    def save_results(self, filename="results.csv"):
         with open(filename, "w", newline="") as csvfile:
             fieldnames = ["index", "glyph_type", "sizeA", "sizeB", "sizeC"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -173,7 +173,7 @@ class MainWindow(QtWidgets.QWidget):
 
     def update_counter_label(self):
         total = len(self.glyph_order)
-        self.counter_label.setText(f"{self.index} z {total}")
+        self.counter_label.setText(f"{self.index} / {total}")
 
 class GlyphWidget(QtWidgets.QWidget):
     def __init__(self, glyph_type: str, value: float, editable: bool = False):
@@ -211,6 +211,7 @@ class GlyphWidget(QtWidgets.QWidget):
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(image)
         self.image_label.setPixmap(pixmap)
+
         #self.value_label.setText(f"DEBUG: {self.value:.1f}") # DEBUG
 
     def wheelEvent(self, event):
