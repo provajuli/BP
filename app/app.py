@@ -117,8 +117,6 @@ class MainWindow(QtWidgets.QWidget):
         self.new_example()
 
     def new_example(self):
-        glyph_type = random.choice(list(glyphs.keys()))
-
         #ulozeni vysledku 
         if hasattr(self, 'sizeA') and hasattr(self, 'sizeB') and hasattr(self, 'sizeC'):
             result = {
@@ -133,14 +131,14 @@ class MainWindow(QtWidgets.QWidget):
         
         # ukonceni experimentu
         if self.glyph_index >= len(self.glyph_order):
-            QtWidgets.QMessageBox.information(self, "Done", "Results saved to results.csv")
+            QtWidgets.QMessageBox.information(self, "Done", "Results saved to data/results.csv")
             self.close()
             return
 
         # pokracovani experimentu
         glyph_type = self.glyph_order[self.glyph_index]
-        self.glyph_index += 1
         self.current_glyph_type = glyph_type
+        self.glyph_index += 1
 
         # nastaveni stejneho glyphu pro trojici glyphu
         self.glyphA.set_type(glyph_type)
@@ -164,7 +162,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_counter_label()
 
-    def save_results(self, filename="results.csv"):
+    def save_results(self, filename="data/results.csv"):
         with open(filename, "w", newline="") as csvfile:
             fieldnames = ["index", "glyph_type", "sizeA", "sizeB", "sizeC"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
