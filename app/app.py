@@ -77,7 +77,7 @@ class MainWindow(QtWidgets.QWidget):
         self.glyph_index = 0 # pro pocitadlo
 
         self.setWindowTitle("Experiment")
-        self.setGeometry(600, 300, 900, 500)
+        self.setGeometry(400, 300, 900, 500)
 
         main_layout = QtWidgets.QVBoxLayout(self)
         glyph_layout = QtWidgets.QHBoxLayout()
@@ -121,7 +121,7 @@ class MainWindow(QtWidgets.QWidget):
         if hasattr(self, 'sizeA') and hasattr(self, 'sizeB') and hasattr(self, 'sizeC'):
             result = {
                 'index': self.index,
-                'glyph_type': glyph_type,
+                'glyph_type': self.current_glyph_type,
                 'sizeA': self.sizeA,
                 'sizeB': self.glyphB.value,
                 'sizeC': self.sizeC,
@@ -225,4 +225,3 @@ window.show()
 exit_code = app.exec_()
 window.save_results() 
 sys.exit(exit_code)
-
