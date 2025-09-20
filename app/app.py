@@ -162,7 +162,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_counter_label()
 
-    def save_results(self, filename="data/results.csv"):
+    def save_results(self, filename="data/data_sets/results.csv"):
         with open(filename, "w", newline="") as csvfile:
             fieldnames = ["index", "glyph_type", "sizeA", "sizeB", "sizeC"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
