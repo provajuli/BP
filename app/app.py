@@ -8,54 +8,11 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from io import BytesIO
 import mglyph as mg
 
-# Registrace glyphu
-def horizontal_line(x: float, canvas:mg.Canvas) -> None:
-    canvas.line((mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter),    
-                (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter),   
-                linecap='round', width='30p', color='navy')
+from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
-def simple_scaled_square(x: float, canvas: mg.Canvas) -> None:
-    tl = (mg.lerp(x, 0.0, -1), mg.lerp(x, 0.0, -1.0))
-    br = (mg.lerp(x, 0, 1), mg.lerp(x, 0, 1))
-
-    canvas.rect(tl, br, color='blue', width='20p')
-
-def simple_scaled_circle(x: float, canvas: mg.Canvas) -> None:
-    canvas.circle(canvas.center, mg.lerp(x, 0, 1), color='red', style='stroke', width='20p')
-
-def simple_scaled_star(x: float, canvas: mg.Canvas) -> None:
-    radius = mg.lerp(x, 0, canvas.ysize/2)
-    vertices = []
-    for segment in range(5):
-        vertices.append(mg.orbit(canvas.center, segment * 2*math.pi/5, radius))
-        vertices.append(mg.orbit(canvas.center, (segment + 0.5) * 2*math.pi/5, math.cos(2*math.pi/5)/math.cos(math.pi/5) * radius))
-    canvas.polygon(vertices, color=(1,0,0,0.25), closed=True, width='30p')
-
-def simple_polygon(x: float, canvas: mg.Canvas) -> None:
-    l = (mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter)
-    ct = (canvas.xcenter, -0.2)
-    r = (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter)
-    cb = (canvas.xcenter, 0.1)
-    canvas.polygon([l, cb, r, ct], color='#A2a', closed=True)
-
-def simple_colour_patch(x: float, canvas: mg.Canvas) -> None:
-    hue = x / 100
-    r, g, b = colorsys.hsv_to_rgb(hue, 1.0, 1.0)
-    color = f"#{int(r*255):02x}{int(g*255):02x}{int(b*255):02x}"
-    canvas.rect(
-        (canvas.xleft, canvas.ytop),
-        (canvas.xright, canvas.ybottom),
-        color=color,
-        style="fill",
-    )
-
-glyphs = {
-    "line": horizontal_line,
-    "square": simple_scaled_square,
-    "circle": simple_scaled_circle,
-    "star": simple_scaled_star,
-    "polygon": simple_polygon,
-}
+# ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
+USE_ADVANCED = True 
+glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
 
 def render_png(glyph_type: str, x: float) -> bytes:
     result = mg.render(glyphs[glyph_type], (96, 96), [x])
@@ -82,13 +39,21 @@ class MainWindow(QtWidgets.QWidget):
         main_layout = QtWidgets.QVBoxLayout(self)
         glyph_layout = QtWidgets.QHBoxLayout()
 
-        self.glyphA = GlyphWidget("line", 0, editable = False)
+        first_glyph = random.choice(list(glyphs.keys()))
+
+        while True:
+            self.sizeA = random.randint(1, 100)
+            self.sizeC = random.randint(1, 100)
+            if (self.sizeA < self.sizeC) or (self.sizeA > self.sizeC):
+                break
+
+        self.glyphA = GlyphWidget(first_glyph, self.sizeA, editable = False)
         glyph_layout.addWidget(self.glyphA)
 
-        self.glyphB = GlyphWidget("line", 50, editable = True)
+        self.glyphB = GlyphWidget(first_glyph, 1, editable = True)
         glyph_layout.addWidget(self.glyphB)
 
-        self.glyphC = GlyphWidget("line", 100, editable = False)
+        self.glyphC = GlyphWidget(first_glyph, self.sizeC, editable = False)
         glyph_layout.addWidget(self.glyphC)
 
         self.counter_label = QtWidgets.QLabel()
@@ -156,7 +121,7 @@ class MainWindow(QtWidgets.QWidget):
         self.glyphA.set_value(self.sizeA)
         self.glyphC.set_value(self.sizeC)
 
-        # setup velikosti pro glyph B na prumer velikosti glyphu A a C
+        # setup velikosti pro glyph B na 1
         self.sizeB = 1
         self.glyphB.set_value(self.sizeB)
 
