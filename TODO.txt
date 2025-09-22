@@ -3,3 +3,6 @@ naklikat nova data
 pridat glyphy
 udelat plot pro gamma (od ruznych uzivatelu)
 zkusit pomoci optimize najit vzorec s parametry
+
+gamma korekce
+scipy optimize
