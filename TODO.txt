@@ -6,3 +6,6 @@ zkusit pomoci optimize najit vzorec s parametry
 
 gamma korekce
 scipy optimize
+metoda nejmensich ctvercu
+
+todo viceparametricke metody pro lepsi aproximaci

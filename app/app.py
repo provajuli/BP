@@ -1,12 +1,9 @@
 import sys
 import csv
-import math
+import mglyph as mg
 import random
-import colorsys
-
 from PyQt5 import QtCore, QtGui, QtWidgets
 from io import BytesIO
-import mglyph as mg
 
 from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 

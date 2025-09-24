@@ -2,6 +2,7 @@ import mglyph as mg
 import math
 import colorsys
 import numpy as np
+import random
 
 def horizontal_line(x: float, canvas:mg.Canvas) -> None:
     canvas.line((mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter),    
@@ -397,6 +398,82 @@ def lightbulb(x:float, canvas:mg.Canvas) -> None:
                     color='dimgray', style='stroke', width='3p')
         
 
+#author: Ondřej Áč
+# Foam polygon using LUT
+n_pts = 100
+random.seed(5485)
+def gen_lut(npts : int = 40, ks : int = 5):
+    X = [random.uniform(0.04, 0.08) for i in range(npts)]
+    res = [None] * npts
+    for i in range(npts):
+        acc = 0.0
+        cnt = 0.0
+        for j in range(ks):
+            k = i + j - ks // 2
+            if(k > 0 and k < npts):
+                acc += X[k]
+        res[i] = acc / ks
+    return res
+
+lut = gen_lut(n_pts, 7)
+foam_scale = 2
+
+def beer_glyph(t: float, canvas: mg.Canvas) -> None:
+    t = t * 0.01 + 0.01
+    t = np.pow(t, 0.8)
+    center = canvas.center
+    top_w = 0.6 * t
+    base_w = 0.4 * t
+    glass_h = 1.75 * t
+    num_lines = 9
+    beer_h = glass_h * t
+    beer_w = t * (top_w - base_w)
+    # Compute base offsets
+    base_p = canvas.bottom_center
+    base_p = (base_p[0], base_p[1] + 0.05)
+    top_p = (base_p[0], base_p[1] + beer_h)
+    # Compute vertices
+    l_base = (base_p[0] - base_w, base_p[1])
+    r_base = (base_p[0] + base_w, base_p[1])
+    bl_top = (l_base[0] - beer_w, top_p[1])
+    br_top = (r_base[0] + beer_w, top_p[1])
+    gl_top = (base_p[0] - top_w, base_p[1] + glass_h)
+    gr_top = (base_p[0] + top_w, base_p[1] + glass_h)
+    beer_vert = [l_base, r_base, br_top, bl_top]
+    glass_vert = [l_base, r_base, gr_top, gl_top]
+
+    # Flip Y
+    beer_vert = [(x, 2 - y) for x, y in beer_vert]
+    glass_vert = [(x, 2 - y) for x, y in glass_vert]
+
+    # === FOAM POLYGON ===
+    x_vals = [bl_top[0] + (br_top[0] - bl_top[0]) * i / (n_pts - 1) for i in range(n_pts)]
+    bottom = [(1.0 * x, top_p[1]) for x in x_vals]
+    top = [(1 * x, top_p[1] + foam_scale * t * lut[i]) for i, x in enumerate(x_vals)]
+    foam_vert = bottom + top[::-1]
+
+    # Flip Y
+    foam_vert = [(x, 2 - y) for x, y in foam_vert]
+
+    #canvas.rect(canvas.top_left, canvas.bottom_right, color=(0.15, 0.25, 0.0)) # BG
+    canvas.polygon(foam_vert, (0.93,0.9,0.8,0.9), style='fill', closed=True) # Foam
+    #canvas.polygon(foam_vert, (1.0,1.0,0.9,0.9), style='fill', closed=True) # Foam
+    canvas.polygon(glass_vert, (0.4, 0.7, 1,0.2), style='fill') # Glass BG
+    canvas.polygon(beer_vert, 'goldenrod', style='fill', closed=True) # Beer
+    canvas.polygon(glass_vert, (0.4, 0.7, 1,0.7), width=0.02*t, style='stroke') # Glass outline
+    # Measuring lines
+    
+    for i in range(num_lines):
+        y = 2 - (base_p[1] + glass_h * (i + 1) / num_lines)
+        y2 =  2 - (base_p[1] + glass_h * (i + 0.5) / num_lines)
+        x1 = base_p[0] - base_w / 4
+        x2 = base_p[0] + base_w / 4
+        x3 = base_p[0] - base_w / 8
+        x4 = base_p[0] + base_w / 8
+        if(i < num_lines - 1):
+            canvas.line((x1,y), (x2,y), (0,0,0,0.7), width=0.01*t)
+        canvas.line((x3,y2), (x4,y2), (0,0,0,0.6), width=0.01*t) 
+
 
 def simple_colour_patch(x: float, canvas: mg.Canvas) -> None:
     hue = x / 100
@@ -423,4 +500,5 @@ ADVANCED_GLYPHS = {
     "flower": flower,
     "circular_progressbar": circular_progressbar_ticks_color,
     "lightbulb": lightbulb,
+    "beer": beer_glyph,
 }
