@@ -1,15 +1,19 @@
 import sys
 import csv
 import mglyph as mg
-import random
+import os, random
 from PyQt5 import QtCore, QtGui, QtWidgets
 from io import BytesIO
 
 from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
+N = 15 # pocet opakovani kazdeho glyphu
+
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
 USE_ADVANCED = True 
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
+
+random.seed(None)
 
 def render_png(glyph_type: str, x: float) -> bytes:
     result = mg.render(glyphs[glyph_type], (96, 96), [x])
@@ -26,7 +30,7 @@ class MainWindow(QtWidgets.QWidget):
         self.index = 1 # csv index
         self.glyph_order = [] # serazeni typu glyphu 
         for glyph_type in glyphs:
-            self.glyph_order.extend([glyph_type] * 20)
+            self.glyph_order.extend([glyph_type] * N)
         random.shuffle(self.glyph_order)
         self.glyph_index = 0 # pro pocitadlo
 
@@ -93,7 +97,7 @@ class MainWindow(QtWidgets.QWidget):
         
         # ukonceni experimentu
         if self.glyph_index >= len(self.glyph_order):
-            QtWidgets.QMessageBox.information(self, "Done", "Results saved to data/results.csv")
+            QtWidgets.QMessageBox.information(self, "Done", "Results saved to data/data_sets/results.csv")
             self.close()
             return
 
@@ -149,10 +153,6 @@ class GlyphWidget(QtWidgets.QWidget):
         self.image_label = QtWidgets.QLabel()
         layout.addWidget(self.image_label)
 
-        #self.value_label = QtWidgets.QLabel() # DEBUG
-        #self.value_label.setAlignment(QtCore.Qt.AlignCenter) # DEBUG
-        #layout.addWidget(self.value_label) # DEBUG
-
         self.update_image()
 
     def set_value(self, value: float):
@@ -171,8 +171,6 @@ class GlyphWidget(QtWidgets.QWidget):
         pixmap = QtGui.QPixmap()
         pixmap.loadFromData(image)
         self.image_label.setPixmap(pixmap)
-
-        #self.value_label.setText(f"DEBUG: {self.value:.1f}") # DEBUG
 
     def wheelEvent(self, event):
         if self.editable:
