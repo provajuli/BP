@@ -8,3 +8,10 @@ gamma korekce
 scipy optimize - metoda nejmensich ctvercu
 
 todo viceparametricke metody pro lepsi aproximaci ???
+
+vizualizace zobaky 
+vizualizace ohraniceni hlavni krivky
+- najit jiny zpusob vizualizace, ktery toho bude sdelovat vic hehe
+
+chyba aproximacniho algoritmu
+
