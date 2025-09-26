@@ -62,7 +62,7 @@ class MainWindow(QtWidgets.QWidget):
 
             self.trials.append((glyph_type, A, C))
 
-        # GUI setup
+        # _____________GUI setup______________________
         self.setWindowTitle("Experiment")
         self.setGeometry(400, 300, 900, 500)
 
@@ -107,7 +107,7 @@ class MainWindow(QtWidgets.QWidget):
 
     def new_example(self):
         #ulozeni vysledku 
-        if hasattr(self, 'sizeA') and hasattr(self, 'sizeB') and hasattr(self, 'sizeC'):
+        if hasattr(self, 'sizeA') and hasattr(self, 'sizeC'):
             result = {
                 'index': self.index,
                 'glyph_type': self.current_glyph_type,
@@ -139,8 +139,7 @@ class MainWindow(QtWidgets.QWidget):
         self.glyphC.set_value(self.sizeC)
 
         # setup velikosti pro glyph B na 1
-        self.sizeB = 1
-        self.glyphB.set_value(self.sizeB)
+        self.glyphB.set_value(1)
 
         self.update_counter_label()
 
