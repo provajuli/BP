@@ -19,7 +19,7 @@ def simple_scaled_circle(x: float, canvas: mg.Canvas) -> None:
     canvas.circle(canvas.center, mg.lerp(x, 0, 1), color='red', style='stroke', width='20p')
 
 def simple_scaled_star(x: float, canvas: mg.Canvas) -> None:
-    radius = mg.lerp(x, 0, canvas.ysize/2)
+    radius = mg.lerp(x, 0.01, canvas.ysize/2)
     vertices = []
     for segment in range(5):
         vertices.append(mg.orbit(canvas.center, segment * 2*math.pi/5, radius))

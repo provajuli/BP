@@ -10,8 +10,8 @@ from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 SEED = 12345
 random.seed(SEED)
 N = 20 # pocet opakovani kazdeho glyphu
-CENTER_LEVELS = (10, 20, 35, 50, 65, 80, 90)
-DIFF_LEVELS = (6, 18, 30, 42, 54)
+CENTER_LEVELS = (10, 30, 40, 50, 60, 75, 90)
+DIFF_LEVELS = (6, 10, 20, 40, 60)
 JITTER_MIDDLE = 3
 JITTER_DIFF = 2
 
@@ -41,16 +41,16 @@ class MainWindow(QtWidgets.QWidget):
 
         self.trials = []
         combos = [(M, D) for M in CENTER_LEVELS for D in DIFF_LEVELS]
-        ci = 0
+        combo_idx = 0
         for glyph_type in self.glyph_order:
-            M, D = combos [ci % len(combos)]
-            ci += 1
+            M, D = combos [combo_idx % len(combos)]
+            combo_idx += 1
 
             Mj = M + random.randint(-JITTER_MIDDLE, JITTER_MIDDLE)
             Dj = max(2, D + random.randint(-JITTER_DIFF, JITTER_DIFF))
 
             A = Mj - (Dj // 2)
-            C = Mj + (Dj // 2)
+            C = Mj + (Dj - Dj // 2)
 
             if random.random() < 0.5:
                 A, C = C, A
@@ -61,7 +61,7 @@ class MainWindow(QtWidgets.QWidget):
                 C = min(100, C + 1)
 
             self.trials.append((glyph_type, A, C))
-
+            
         # _____________GUI setup______________________
         self.setWindowTitle("Experiment")
         self.setGeometry(400, 300, 900, 500)
