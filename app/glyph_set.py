@@ -24,7 +24,7 @@ def simple_scaled_star(x: float, canvas: mg.Canvas) -> None:
     for segment in range(5):
         vertices.append(mg.orbit(canvas.center, segment * 2*math.pi/5, radius))
         vertices.append(mg.orbit(canvas.center, (segment + 0.5) * 2*math.pi/5, math.cos(2*math.pi/5)/math.cos(math.pi/5) * radius))
-    canvas.polygon(vertices, color=(1,0,0,0.25), closed=True, width='30p')
+    canvas.polygon(vertices, color="#4BCA4B", closed=True, width='30p')
 
 def simple_polygon(x: float, canvas: mg.Canvas) -> None:
     l = (mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter)

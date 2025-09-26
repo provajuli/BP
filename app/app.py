@@ -7,13 +7,16 @@ from io import BytesIO
 
 from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
-SEED = 42
+SEED = 12345
 random.seed(SEED)
-
-N = 15 # pocet opakovani kazdeho glyphu
+N = 20 # pocet opakovani kazdeho glyphu
+CENTER_LEVELS = (10, 20, 35, 50, 65, 80, 90)
+DIFF_LEVELS = (6, 18, 30, 42, 54)
+JITTER_MIDDLE = 3
+JITTER_DIFF = 2
 
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
-USE_ADVANCED = True 
+USE_ADVANCED = False 
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
 
 def render_png(glyph_type: str, x: float) -> bytes:
@@ -28,37 +31,53 @@ class MainWindow(QtWidgets.QWidget):
         super().__init__()
 
         self.results = [] # pole pro ukladani csv vysledku 
-        self.index = 1 # csv index
-        self.glyph_order = [] # serazeni typu glyphu 
-        for glyph_type in glyphs:
+        self.index = 1  # index pro pocitani vysledku
+        self.glyph_index = 0
+
+        self.glyph_order = []
+        for glyph_type in glyphs.keys():
             self.glyph_order.extend([glyph_type] * N)
         random.shuffle(self.glyph_order)
-        self.glyph_index = 0 # pro pocitadlo
 
         self.trials = []
+        combos = [(M, D) for M in CENTER_LEVELS for D in DIFF_LEVELS]
+        ci = 0
         for glyph_type in self.glyph_order:
-            while True:
-                sizeA = random.randint(1, 100)
-                sizeC = random.randint(1, 100)
-                if (sizeA != sizeC):
-                    break
-            self.trials.append((glyph_type, sizeA, sizeC))
+            M, D = combos [ci % len(combos)]
+            ci += 1
 
+            Mj = M + random.randint(-JITTER_MIDDLE, JITTER_MIDDLE)
+            Dj = max(2, D + random.randint(-JITTER_DIFF, JITTER_DIFF))
+
+            A = Mj - (Dj // 2)
+            C = Mj + (Dj // 2)
+
+            if random.random() < 0.5:
+                A, C = C, A
+
+            A = max(1, min(100, A))
+            C = max(1, min(100, C))
+            if A == C:
+                C = min(100, C + 1)
+
+            self.trials.append((glyph_type, A, C))
+
+        # GUI setup
         self.setWindowTitle("Experiment")
         self.setGeometry(400, 300, 900, 500)
 
         main_layout = QtWidgets.QVBoxLayout(self)
         glyph_layout = QtWidgets.QHBoxLayout()
 
-        first_glyph = self.glyph_order[0]
+        first_glyph, a0, c0 = self.trials[0]
 
-        self.glyphA = GlyphWidget(first_glyph, self.trials[0][1], editable = False)
+        self.glyphA = GlyphWidget(first_glyph, a0, editable = False)
         glyph_layout.addWidget(self.glyphA)
 
         self.glyphB = GlyphWidget(first_glyph, 1, editable = True)
         glyph_layout.addWidget(self.glyphB)
 
-        self.glyphC = GlyphWidget(first_glyph, self.trials[0][2], editable = False)
+        self.glyphC = GlyphWidget(first_glyph, c0, editable = False)
         glyph_layout.addWidget(self.glyphC)
 
         self.counter_label = QtWidgets.QLabel()
