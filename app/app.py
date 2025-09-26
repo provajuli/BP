@@ -7,13 +7,14 @@ from io import BytesIO
 
 from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
+SEED = 42
+random.seed(SEED)
+
 N = 15 # pocet opakovani kazdeho glyphu
 
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
 USE_ADVANCED = True 
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
-
-random.seed(None)
 
 def render_png(glyph_type: str, x: float) -> bytes:
     result = mg.render(glyphs[glyph_type], (96, 96), [x])
@@ -34,27 +35,30 @@ class MainWindow(QtWidgets.QWidget):
         random.shuffle(self.glyph_order)
         self.glyph_index = 0 # pro pocitadlo
 
+        self.trials = []
+        for glyph_type in self.glyph_order:
+            while True:
+                sizeA = random.randint(1, 100)
+                sizeC = random.randint(1, 100)
+                if (sizeA != sizeC):
+                    break
+            self.trials.append((glyph_type, sizeA, sizeC))
+
         self.setWindowTitle("Experiment")
         self.setGeometry(400, 300, 900, 500)
 
         main_layout = QtWidgets.QVBoxLayout(self)
         glyph_layout = QtWidgets.QHBoxLayout()
 
-        first_glyph = random.choice(list(glyphs.keys()))
+        first_glyph = self.glyph_order[0]
 
-        while True:
-            self.sizeA = random.randint(1, 100)
-            self.sizeC = random.randint(1, 100)
-            if (self.sizeA < self.sizeC) or (self.sizeA > self.sizeC):
-                break
-
-        self.glyphA = GlyphWidget(first_glyph, self.sizeA, editable = False)
+        self.glyphA = GlyphWidget(first_glyph, self.trials[0][1], editable = False)
         glyph_layout.addWidget(self.glyphA)
 
         self.glyphB = GlyphWidget(first_glyph, 1, editable = True)
         glyph_layout.addWidget(self.glyphB)
 
-        self.glyphC = GlyphWidget(first_glyph, self.sizeC, editable = False)
+        self.glyphC = GlyphWidget(first_glyph, self.trials[0][2], editable = False)
         glyph_layout.addWidget(self.glyphC)
 
         self.counter_label = QtWidgets.QLabel()
@@ -102,7 +106,7 @@ class MainWindow(QtWidgets.QWidget):
             return
 
         # pokracovani experimentu
-        glyph_type = self.glyph_order[self.glyph_index]
+        glyph_type, self.sizeA, self.sizeC = self.trials[self.glyph_index]
         self.current_glyph_type = glyph_type
         self.glyph_index += 1
 
@@ -110,13 +114,6 @@ class MainWindow(QtWidgets.QWidget):
         self.glyphA.set_type(glyph_type)
         self.glyphB.set_type(glyph_type)
         self.glyphC.set_type(glyph_type)
-
-        # generovani nahodnych velikosti pro glyphy A a C
-        while True:
-            self.sizeA = random.randint(1, 100)
-            self.sizeC = random.randint(1, 100)
-            if (self.sizeA < self.sizeC) or (self.sizeA > self.sizeC):
-                break
 
         # nastaveni pevne velikosti pro glyphy A a C
         self.glyphA.set_value(self.sizeA)
