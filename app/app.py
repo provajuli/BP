@@ -39,15 +39,26 @@ class MainWindow(QtWidgets.QWidget):
             self.glyph_order.extend([glyph_type] * N)
         random.shuffle(self.glyph_order)
 
+        BINS = [(0, 35), (36, 70), (71, 100)]
+
         self.trials = []
         for glyph_type in self.glyph_order:
-            x = int(random.uniform(10, 50)) # rozdil mezi A a C
-            a = int(random.uniform(1, 100 - x)) # pozice A
-            c = a + x # pozice C
+            while True:
+                x = random.randint(10, 40)
+                idx = random.randint(0, 2)
+                bin_low, bin_high = BINS[idx]
 
-            z = random.uniform(0, 1)
-            if z < 0.5:
+                c_low = max(bin_low, x + 1)
+                c_high = min(bin_high, 100)
+
+                if c_low <= c_high:
+                    c = random.randint(c_low, c_high)
+                    a = c - x
+                    break
+
+            if random.random() < 0.5:
                 a, c = c, a
+
             self.trials.append((glyph_type, a, c))
             
         # _____________GUI setup______________________
