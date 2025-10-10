@@ -15,3 +15,6 @@ vizualizace ohraniceni hlavni krivky
 
 chyba aproximacniho algoritmu
 
+uprav algoritmus pro generovani testovacich prikladu:
+1. Generuj nahodne cislo x s uniformnim rozlozenim v rozmezi 10-55, to bude rozestup mezi A a C
+2. Generuj nahodne cislo 1 - 100-x, tam umisti A, C se umisti na A+x
