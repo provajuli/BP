@@ -7,13 +7,9 @@ from io import BytesIO
 
 from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
-SEED = 12345
+SEED = None
 random.seed(SEED)
 N = 20 # pocet opakovani kazdeho glyphu
-CENTER_LEVELS = (10, 30, 40, 50, 60, 70, 90)
-DIFF_LEVELS = (6, 10, 20, 40, 60)
-JITTER_MIDDLE = 4
-JITTER_DIFF = 2
 
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
 USE_ADVANCED = False 
@@ -44,27 +40,15 @@ class MainWindow(QtWidgets.QWidget):
         random.shuffle(self.glyph_order)
 
         self.trials = []
-        combos = [(M, D) for M in CENTER_LEVELS for D in DIFF_LEVELS]
-        combo_idx = 0
         for glyph_type in self.glyph_order:
-            M, D = combos [combo_idx % len(combos)]
-            combo_idx += 1
+            x = int(random.uniform(10, 50)) # rozdil mezi A a C
+            a = int(random.uniform(1, 100 - x)) # pozice A
+            c = a + x # pozice C
 
-            Mj = M + random.randint(-JITTER_MIDDLE, JITTER_MIDDLE)
-            Dj = max(2, D + random.randint(-JITTER_DIFF, JITTER_DIFF))
-
-            A = Mj - (Dj // 2)
-            C = Mj + (Dj - Dj // 2)
-
-            if random.random() < 0.5:
-                A, C = C, A
-
-            A = max(1, min(100, A))
-            C = max(1, min(100, C))
-            if A == C:
-                C = min(100, C + 1)
-
-            self.trials.append((glyph_type, A, C))
+            z = random.uniform(0, 1)
+            if z < 0.5:
+                a, c = c, a
+            self.trials.append((glyph_type, a, c))
             
         # _____________GUI setup______________________
         self.setWindowTitle("Experiment")
