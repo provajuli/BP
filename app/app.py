@@ -29,6 +29,7 @@ def render_png(glyph_type: str, x: float) -> bytes:
 # TODO: improve generating
 # Generuj nahodne cislo x s uniformnim rozlozenim v rozmezi 10-55, to bude rozestup mezi A a C
 # Generuj nahodne cislo 1 - 100-x, tam umisti A, C se umisti na A+x
+# z = rand.int(0, 1) if z < 0.5 then A, C = C, A 
 class MainWindow(QtWidgets.QWidget):
     def __init__(self):
         super().__init__()
