@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QWidget):
         self.trials = []
         for glyph_type in self.glyph_order:
             while True:
-                x = random.randint(10, 40)
+                x = random.randint(10, 50)
                 idx = random.randint(0, 2)
                 bin_low, bin_high = BINS[idx]
 

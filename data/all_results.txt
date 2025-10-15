@@ -1,2 +1,8 @@
+filtrovane:
 julie_results2.csv
 matus_results.csv
+franta_results.csv
+frantisek_results.csv
+julie_results1.csv
+
+podle noveho generovani:
