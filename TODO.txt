@@ -21,8 +21,8 @@ uprav algoritmus pro generovani testovacich prikladu:
 
 eliminace outliers 1 % - 5 %
 
+-> rozdelim osu x na 1000 casti a pak hledam body na krivce modelu, ktere jsou nejbliz seznamu mych bodu B
 dve zobakove metriky - euklidovska vzdalenost bodu od krivky modelu - suma nad a pod by se mela blizit co nejvic nule
                      - suma vzdalenosti nad i pod krivkou modelu by mela byt co nejmensich
 
 plot, ktery vhodne zobrazi modely - linearni, log, gamma, polynomialni - muze byt interaktivni -> muzu udelat interaktivni plot ktery mi bude prubezne pocitat hodnoty?
-  
