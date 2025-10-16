@@ -12,7 +12,7 @@ random.seed(SEED)
 N = 20 # pocet opakovani kazdeho glyphu
 
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
-USE_ADVANCED = False 
+USE_ADVANCED = True 
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
 
 def render_png(glyph_type: str, x: float) -> bytes:
@@ -23,7 +23,7 @@ def render_png(glyph_type: str, x: float) -> bytes:
     return buf.getvalue()
 
 # TODO: improve generating
-# Generuj nahodne cislo x s uniformnim rozlozenim v rozmezi 10-55, to bude rozestup mezi A a C
+# Generuj nahodne cislo x s uniformnim rozlozenim v rozmezi 10-50, to bude rozestup mezi A a C
 # Generuj nahodne cislo 1 - 100-x, tam umisti A, C se umisti na A+x
 # z = rand.int(0, 1) if z < 0.5 then A, C = C, A 
 class MainWindow(QtWidgets.QWidget):

@@ -6,3 +6,4 @@ frantisek_results.csv
 julie_results1.csv
 
 podle noveho generovani:
+julie_advanced_results2.csv

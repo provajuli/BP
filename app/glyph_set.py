@@ -499,6 +499,5 @@ ADVANCED_GLYPHS = {
     "tree_growth": tree_growth,
     "flower": flower,
     "circular_progressbar": circular_progressbar_ticks_color,
-    "lightbulb": lightbulb,
     "beer": beer_glyph,
 }
