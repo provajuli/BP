@@ -26,3 +26,5 @@ dve zobakove metriky - euklidovska vzdalenost bodu od krivky modelu - suma nad a
                      - suma vzdalenosti nad i pod krivkou modelu by mela byt co nejmensich
 
 plot, ktery vhodne zobrazi modely - linearni, log, gamma, polynomialni - muze byt interaktivni -> muzu udelat interaktivni plot ktery mi bude prubezne pocitat hodnoty?
+
+interaktivni plot s checkboxem pro vizualizaci lineraniho modelu, gamma a plynomialniho -> ruzne alfa pro ruzne zvolene checkboxy
