@@ -39,7 +39,7 @@ class MainWindow(QtWidgets.QWidget):
             self.glyph_order.extend([glyph_type] * N)
         random.shuffle(self.glyph_order)
 
-        BINS = [(0, 35), (36, 70), (71, 100)]
+        BINS = [(0, 33), (34, 66), (67, 100)]
 
         self.trials = []
         for glyph_type in self.glyph_order:
