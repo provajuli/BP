@@ -1,0 +1,14 @@
+filtrovane:
+julie_results2.csv
+matus_results.csv
+franta_results.csv
+frantisek_results.csv
+julie_results1.csv
+
+podle noveho generovani:
+julie_advanced_results2.csv
+sara_advanced_results.csv
+viki_advanced_results.csv
+klarka_advanced_results.csv
+maja_advanced_results.csv
+matus_advanced_results.csv
