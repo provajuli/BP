@@ -19,10 +19,19 @@ uprav algoritmus pro generovani testovacich prikladu:
 1. Generuj nahodne cislo x s uniformnim rozlozenim v rozmezi 10-55, to bude rozestup mezi A a C
 2. Generuj nahodne cislo 1 - 100-x, tam umisti A, C se umisti na A+x
 
+predelat na .py
+
 eliminace outliers 1 % - 5 %
 
 -> rozdelim osu x na 1000 casti a pak hledam body na krivce modelu, ktere jsou nejbliz seznamu mych bodu B
-dve zobakove metriky - euklidovska vzdalenost bodu od krivky modelu - suma nad a pod by se mela blizit co nejvic nule
-                     - suma vzdalenosti nad i pod krivkou modelu by mela byt co nejmensich
+dve zobakove metriky - euklidovska vzdalenost bodu od krivky modelu - suma nad a pod by mela byt co nejmensi
+                     - suma vzdalenosti nad i pod krivkou modelu by se mela blizit 0
 
-plot, ktery vhodne zobrazi modely - linearni, log, gamma, polynomialni - muze byt interaktivni -> muzu udelat interaktivni plot ktery mi bude prubezne pocitat hodnoty?
+plot, ktery vhodne zobrazi modely - linearni, gamma, polynomialni - muze byt interaktivni -> muzu udelat interaktivni plot ktery mi bude prubezne pocitat hodnoty?
+
+
+normalizace metrik - prumer, median
+korelacni koeficient mezi predikovanym B a skutecnym B
+
+
+pozn. maja se sekla u slunce 
