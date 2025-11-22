@@ -12,3 +12,5 @@ viki_advanced_results.csv
 klarka_advanced_results.csv
 maja_advanced_results.csv
 matus_advanced_results.csv
+pavlina_results.csv
+pavlina_advanced_results.csv

@@ -1,50 +1,50 @@
 Glyph: beer
-  Linear:    euclidean_sum = 1.391       signed_euclidean_sum = -0.009
-  Gamma:     euclidean_sum = 1.390       signed_euclidean_sum = -0.046
-  Poly3C:    euclidean_sum = 1.360        signed_euclidean_sum = 0.028
+  Linear:    euclidean_sum = 1.738       signed_euclidean_sum = 0.338
+  Gamma:     euclidean_sum = 1.708       signed_euclidean_sum = 0.031
+  Poly3C:    euclidean_sum = 1.704        signed_euclidean_sum = 0.205
 
 Glyph: circle
-  Linear:    euclidean_sum = 1.515       signed_euclidean_sum = 0.315
-  Gamma:     euclidean_sum = 1.504       signed_euclidean_sum = 0.254
-  Poly3C:    euclidean_sum = 1.513        signed_euclidean_sum = 0.102
+  Linear:    euclidean_sum = 1.692       signed_euclidean_sum = 0.463
+  Gamma:     euclidean_sum = 1.661       signed_euclidean_sum = 0.311
+  Poly3C:    euclidean_sum = 1.625        signed_euclidean_sum = 0.101
 
 Glyph: circular_progressbar
-  Linear:    euclidean_sum = 1.589       signed_euclidean_sum = 0.650
-  Gamma:     euclidean_sum = 1.454       signed_euclidean_sum = -0.085
-  Poly3C:    euclidean_sum = 1.434        signed_euclidean_sum = -0.120
+  Linear:    euclidean_sum = 1.707       signed_euclidean_sum = 0.750
+  Gamma:     euclidean_sum = 1.599       signed_euclidean_sum = -0.013
+  Poly3C:    euclidean_sum = 1.575        signed_euclidean_sum = -0.078
 
 Glyph: flower
-  Linear:    euclidean_sum = 1.909       signed_euclidean_sum = -1.095
-  Gamma:     euclidean_sum = 1.664       signed_euclidean_sum = -0.071
-  Poly3C:    euclidean_sum = 1.616        signed_euclidean_sum = 0.003
+  Linear:    euclidean_sum = 2.081       signed_euclidean_sum = -1.110
+  Gamma:     euclidean_sum = 1.882       signed_euclidean_sum = -0.123
+  Poly3C:    euclidean_sum = 1.820        signed_euclidean_sum = -0.027
 
 Glyph: line
-  Linear:    euclidean_sum = 1.662       signed_euclidean_sum = 0.083
-  Gamma:     euclidean_sum = 1.667       signed_euclidean_sum = 0.128
-  Poly3C:    euclidean_sum = 1.708        signed_euclidean_sum = -0.122
+  Linear:    euclidean_sum = 1.966       signed_euclidean_sum = 0.092
+  Gamma:     euclidean_sum = 1.970       signed_euclidean_sum = 0.120
+  Poly3C:    euclidean_sum = 1.958        signed_euclidean_sum = -0.201
 
 Glyph: polygon
-  Linear:    euclidean_sum = 2.590       signed_euclidean_sum = 0.408
-  Gamma:     euclidean_sum = 2.600       signed_euclidean_sum = 0.756
-  Poly3C:    euclidean_sum = 2.753        signed_euclidean_sum = 0.442
+  Linear:    euclidean_sum = 2.861       signed_euclidean_sum = 0.431
+  Gamma:     euclidean_sum = 2.901       signed_euclidean_sum = 0.936
+  Poly3C:    euclidean_sum = 3.103        signed_euclidean_sum = 0.557
 
 Glyph: square
-  Linear:    euclidean_sum = 1.071       signed_euclidean_sum = 0.267
-  Gamma:     euclidean_sum = 1.062       signed_euclidean_sum = 0.225
-  Poly3C:    euclidean_sum = 1.097        signed_euclidean_sum = 0.197
+  Linear:    euclidean_sum = 1.227       signed_euclidean_sum = 0.335
+  Gamma:     euclidean_sum = 1.192       signed_euclidean_sum = 0.204
+  Poly3C:    euclidean_sum = 1.222        signed_euclidean_sum = 0.181
 
 Glyph: star
-  Linear:    euclidean_sum = 1.747       signed_euclidean_sum = -0.496
-  Gamma:     euclidean_sum = 1.716       signed_euclidean_sum = 0.430
-  Poly3C:    euclidean_sum = 1.632        signed_euclidean_sum = -0.011
+  Linear:    euclidean_sum = 1.942       signed_euclidean_sum = -0.456
+  Gamma:     euclidean_sum = 1.939       signed_euclidean_sum = 0.459
+  Poly3C:    euclidean_sum = 1.857        signed_euclidean_sum = -0.027
 
 Glyph: sun
-  Linear:    euclidean_sum = 2.450       signed_euclidean_sum = -0.185
-  Gamma:     euclidean_sum = 2.155       signed_euclidean_sum = -0.620
-  Poly3C:    euclidean_sum = 1.518        signed_euclidean_sum = -0.111
+  Linear:    euclidean_sum = 2.686       signed_euclidean_sum = -0.166
+  Gamma:     euclidean_sum = 2.311       signed_euclidean_sum = -0.678
+  Poly3C:    euclidean_sum = 1.709        signed_euclidean_sum = -0.089
 
 Glyph: tree_growth
-  Linear:    euclidean_sum = 2.714       signed_euclidean_sum = -1.706
-  Gamma:     euclidean_sum = 2.609       signed_euclidean_sum = -0.521
-  Poly3C:    euclidean_sum = 2.404        signed_euclidean_sum = -0.037
+  Linear:    euclidean_sum = 3.105       signed_euclidean_sum = -2.029
+  Gamma:     euclidean_sum = 2.972       signed_euclidean_sum = -0.539
+  Poly3C:    euclidean_sum = 2.739        signed_euclidean_sum = 0.079
 
