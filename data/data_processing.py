@@ -208,6 +208,17 @@ def plot_cubic_constrained_model(rows, outpath):
     plt.close()
 
 
+################################################################
+# --------------------POLY3 MODEL NEOMEZENY---------------------
+################################################################
+def cubic_function(x, a_par, b_par, c_par, d_par):
+    x = np.asarray(x, float)
+    return a_par + b_par*x + c_par*(x**2) + d_par*(x**3)
+
+
+#TODO: fitting neomezeneho poly3
+
+
 #####################################################
 # --------------------BEAK PLOTS---------------------
 #####################################################
@@ -308,9 +319,14 @@ def signed_euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y):
         distances[i] = 0.0 if best is None else best * best_sign
     return distances
 
-# nejvyssi hodnoty budu mazat - nejvetsi euklid vzdalenost, nejvetsi vzdalenost v ose y
-# bude tam prepinac na mod podle metriky a procento outlieru
-def remove_outliers():
+# nejvyssi hodnoty budu mazat - nejvetsi euklid vzdalenost
+# potrebuji predat np.array euklidovskych unsigned vzdalenosti a procento outlieru k odstraneni
+# vzdalenosti seradim od nejmensi po nejvetsi 
+# KEEP = 1 - (OUTLIERS_PCT / 100)
+# posledni index ponechaneho bodu by mel byt int(KEEP * len(distances))
+# udelam si masku pro vybrane body a vratim ji
+# tuhle masku muzu pouzit i pri vykresleni zobackuuu
+def remove_outliers_mask(distances, outliers_pct = OUTLIERS_PCT):
     pass
 
 
@@ -397,7 +413,6 @@ def beak_plots_all_models_for_glyph(glyph, glyph_types, A, B, C, outdir=OUTPUT_D
     plt.savefig(os.path.join(outdir, f"beak_plots_{glyph}.png"), dpi=120, bbox_inches="tight")
     plt.close(fig)
     print(f"  [ok] {glyph}: saved beak_plots_{glyph}.png")
-
 
 
 ###############################################

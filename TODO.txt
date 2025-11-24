@@ -11,7 +11,7 @@ todo viceparametricke metody pro lepsi aproximaci ???
 
 vizualizace zobaky 
 vizualizace ohraniceni hlavni krivky
-- najit jiny zpusob vizualizace, ktery toho bude sdelovat vic hehe
+- najit jiny zpusob vizualizace, ktery toho bude sdelovat vic hehe - libi se mi zobrazeni modelu vedle sebe :) 
 
 chyba aproximacniho algoritmu
 
@@ -28,10 +28,15 @@ dve zobakove metriky - euklidovska vzdalenost bodu od krivky modelu - suma nad a
                      - suma vzdalenosti nad i pod krivkou modelu by se mela blizit 0
 
 plot, ktery vhodne zobrazi modely - linearni, gamma, polynomialni - muze byt interaktivni -> muzu udelat interaktivni plot ktery mi bude prubezne pocitat hodnoty?
+    -> zbytecny, nelibi se mi to, je to zmatene... 
 
+normalizace metrik - prumer, median - asi ne
+korelacni koeficient mezi predikovanym B a skutecnym B?
 
-normalizace metrik - prumer, median
-korelacni koeficient mezi predikovanym B a skutecnym B
+error - error plot - vyhodnoceni nejlepsiho modelu podle nejmensiho obsahu ctyruhelniku 
+dalsi model pro data - poly3 neomezeny, dalsi sigmoid model?
+zverejneni pyqt appky a vyreseni posilani dat (uprava ukladani dat, dotaznik na zaslani csv souboru... nebo musim delat server? :,) )
+outliers - podle procent - nejvzdalenejsich x procent vyhodim pryc 
 
-
-pozn. maja se sekla u slunce 
+POTOM:
+optimalizace - cerpej z IZV 
