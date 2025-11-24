@@ -6,7 +6,6 @@ from scipy.optimize import least_squares
 import numpy as np
 import csv
 import os
-from matplotlib.widgets import RadioButtons
 
 
 ####################################################
@@ -18,13 +17,13 @@ OUTPUT_FILE_CSV = "output/model_comparisson.csv"
 OUTPUT_FILE_TXT = "output/model_comparisson.txt"
 
 
-PLOT_GAMMA = False
-PLOT_CC = False
-PLOT_BEAKS = True
+PLOT_GAMMA = True
+PLOT_CC = True
+PLOT_BEAKS = False
 OUTLIERS_PCT = 0.0
-SAVE_PLOTS = True
-SAVE_RESULTS_CSV = True
-SAVE_RESULTS_TXT = True
+SAVE_PLOTS = False
+SAVE_RESULTS_CSV = False
+SAVE_RESULTS_TXT = False
 
 
 GLYPH_TYPES = []
@@ -39,8 +38,6 @@ def open_data_file(filename = INPUT_FILE):
     glyph_types = []
     with open(path, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
-        # skip header
-        next(reader)
         for row in reader:
             glyph_types.append(row["glyph_type"])
             A.append(float(row["sizeA"]))
