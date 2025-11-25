@@ -36,7 +36,9 @@ korelacni koeficient mezi predikovanym B a skutecnym B?
 error - error plot - vyhodnoceni nejlepsiho modelu podle nejmensiho obsahu ctyruhelniku 
 dalsi model pro data - poly3 neomezeny, dalsi sigmoid model?
 zverejneni pyqt appky a vyreseni posilani dat (uprava ukladani dat, dotaznik na zaslani csv souboru... nebo musim delat server? :,) )
-outliers - podle procent - nejvzdalenejsich x procent vyhodim pryc 
+outliers - podle procent - nejvzdalenejsich x procent vyhodim pryc
+
+figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu 
 
 POTOM:
-optimalizace - cerpej z IZV 
+optimalizace - cerpej z IZV
