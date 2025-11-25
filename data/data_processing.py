@@ -11,19 +11,21 @@ import os
 ####################################################
 # --------------------PREPINACE---------------------
 ####################################################
-INPUT_FILE = "input/filtered_results.csv"
-OUTPUT_DIR = "images"
-OUTPUT_FILE_CSV = "output/model_comparisson.csv"
-OUTPUT_FILE_TXT = "output/model_comparisson.txt"
+PATH = os.path.dirname(os.path.abspath(__file__))
+
+INPUT_FILE = os.path.join(PATH, "input/filtered_results.csv")
+OUTPUT_DIR = os.path.join(PATH, "images")
+OUTPUT_FILE_CSV = os.path.join(PATH, "output/model_comparisson.csv")
+OUTPUT_FILE_TXT = os.path.join(PATH, "output/model_comparisson.txt")
 
 
 PLOT_GAMMA = True
 PLOT_CC = True
-PLOT_BEAKS = False
-OUTLIERS_PCT = 0.0
+PLOT_BEAKS = True
+OUTLIERS_PCT = 5.0
 SAVE_PLOTS = False
-SAVE_RESULTS_CSV = False
-SAVE_RESULTS_TXT = False
+SAVE_RESULTS_CSV = True
+SAVE_RESULTS_TXT = True
 
 
 GLYPH_TYPES = []
@@ -32,11 +34,9 @@ EPS = 1e-9
 
 #-------------------------------------------------------------
 def open_data_file(filename = INPUT_FILE):
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(script_dir, filename)
     A, B, C = [], [], []
     glyph_types = []
-    with open(path, "r", newline="", encoding="utf-8") as f:
+    with open(filename, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         for row in reader:
             glyph_types.append(row["glyph_type"])
@@ -243,7 +243,7 @@ def plot_curve(function):
     y = function(x)
     return x, y
 
-# TODO: vracet signed i unsigned
+
 # pro kazdy bod B najde nejblizsi bod na krivce
 # suma nad krivkou a pod krivkou by se mela blizit 0
 def euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y, select_signed = False):
@@ -299,7 +299,7 @@ def euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y, select_signe
 # tuhle masku muzu pouzit i pri vykresleni zobackuuu
 # TODO: asi bude lepsi mit jako parametry funkce body, ze kterych se pocitaji vzdalenosti??? dunno
 # vstup bude function, x np.array 1000 dilku, beak_x (B) a beak_y (f(A) + f(C)) / 2
-def inliers_mask(distances,outliers_pct = OUTLIERS_PCT):
+def inliers_mask(distances, outliers_pct = OUTLIERS_PCT):
     # kdyz budu mit OUTLIERS_PCT 0.0, chci vratit vsechny body
     # mask bude mit delku len(distances) a vsechny hodnoty True
     n_points = len(distances)
@@ -316,10 +316,24 @@ def inliers_mask(distances,outliers_pct = OUTLIERS_PCT):
     sorted_idx = np.argsort(distances)
     inlier_slice = sorted_idx[:n_keep] # do indexu, ktery odpovida procento * delka si to necham
 
-    mask = np.zeros(n_points, dtype=bool) # masku nastavim na False
+    mask = np.zeros(n_points, dtype=bool) # celou masku nastavim na False
     mask[inlier_slice] = True # na indexech, ktere si chci nechat, dam True
 
-    return mask, sorted_idx
+    return mask, sorted_idx # vraci masku a poradi indexu podle velikosti vzdalenosti
+
+
+def filter_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
+    beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
+
+    x = np.linspace(0, 1, 1000)
+    y = function(x)
+
+    distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=False)
+    mask_inliers, _ = inliers_mask(distances, outliers_pct=outliers_pct)
+
+    # dostanu pouze body z jednoho trial, ktere nejsou outliery
+    # mask_inliers je maska - na indexech True jsou data vyhovujici podmince
+    return A[mask_inliers], B[mask_inliers], C[mask_inliers], mask_inliers
 
 def compute_beak_error(A, B, C, function):
     # beak_x je hodnota B od uzivatele, beak_y je ( f(A) + f(C) ) / 2
@@ -330,11 +344,7 @@ def compute_beak_error(A, B, C, function):
 
     unsigned_euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=False)
     signed_euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=True)
-
-    inliers = inliers_mask(unsigned_euclidean_distances)
-    unsigned_euclidean_distances = unsigned_euclidean_distances[inliers]
-    signed_euclidean_distances = signed_euclidean_distances[inliers]
-
+    
     return dict(
         unsigned_euclidean_sum=np.sum(unsigned_euclidean_distances),
         signed_euclidean_sum=np.sum(signed_euclidean_distances),
@@ -342,29 +352,47 @@ def compute_beak_error(A, B, C, function):
     )
 
 
-def beak_plot_for(function, A, B, C, title, axis):
-    # hlavní křivka
+def beak_plot_for(function, A, B, C, title, axis, mask=None):
+    # krivka modelu
     x = np.linspace(0, 1, 1000)
     y = function(x)
 
     axis.plot(x, y, lw=2, label="model")
 
-    # zobáčkové body
+    # zobacky 🐔 hihi
     beak_x, beak_y, fA, fC = beak_points(A, B, C, function, return_all=True)
 
-    # TODO: vykreslit bez outlieru
-    # Vypocitam unsigned euklid vzdalenosti
-    
-    # Maskou odstranim outliery
+    if mask is None:
+        mask = np.ones(len(beak_x), dtype=bool)
 
-    # Vykreslim bez outlieru
+    # chci vykreslit jen body, ktere jsou inliers
+    A_in = A[mask]
+    C_in = C[mask]
+    beak_x_in = beak_x[mask]
+    beak_y_in = beak_y[mask]
+    fA_in = fA[mask]
+    fC_in = fC[mask]
 
-    # A/C body a úsečky k B
-    for Ai, Bi, Ci, yAi, yBi, yCi in zip(A, beak_x, C, fA, beak_y, fC):
+    A_out = A[~mask]
+    C_out = C[~mask]
+    beak_x_out = beak_x[~mask]
+    beak_y_out = beak_y[~mask]
+    fA_out = fA[~mask]
+    fC_out = fC[~mask]
+
+    # vykreslit outliers
+    for Ai, Bi, Ci, yAi, yBi, yCi in zip(A_out, beak_x_out, C_out, fA_out, beak_y_out, fC_out):
+        axis.plot([Ai, Bi], [yAi, yBi], color='red', linewidth=0.3, alpha=0.4)
+        axis.plot([Ci, Bi], [yCi, yBi], color='red', linewidth=0.3, alpha=0.4)
+        axis.scatter([Ai, Ci], [yAi, yCi], color='darkorange', s=8, alpha=0.4)
+        axis.scatter([Bi], [yBi], color='red', s=14, alpha=0.8)
+
+    # vykreslit inliers
+    for Ai, Bi, Ci, yAi, yBi, yCi in zip(A_in, beak_x_in, C_in, fA_in, beak_y_in, fC_in):
         axis.plot([Ai, Bi], [yAi, yBi], color='gray', linewidth=0.3)
         axis.plot([Ci, Bi], [yCi, yBi], color='gray', linewidth=0.3)
         axis.scatter([Ai, Ci], [yAi, yCi], color='black', s=8)
-        axis.scatter([Bi], [yBi], color='red', s=14)
+        axis.scatter([Bi], [yBi], color='blue', s=14)
 
     axis.set_xlim(0, 1)
     axis.set_ylim(0, 1)
@@ -378,33 +406,42 @@ def beak_plots_all_models_for_glyph(glyph, glyph_types, A, B, C, outdir=OUTPUT_D
     glyph_mask = (glyph_types == glyph)
     A_glyph, B_glyph, C_glyph = A[glyph_mask], B[glyph_mask], C[glyph_mask]
 
-    g_fit = fit_gamma(A_glyph, B_glyph, C_glyph)
-    b_fit, c_fit = fit_cubic_constrained(A_glyph, B_glyph, C_glyph)
+    # odstranim outliers na zaklade linearniho modelu 
+    A_in, B_in, C_in, mask_inliers = filter_outliers(
+        A_glyph, B_glyph, C_glyph,
+        lambda x: x,             
+        OUTLIERS_PCT
+    )
+
+    # do modelu posilam jen inliers
+    g_fit = fit_gamma(A_in, B_in, C_in)
+    b_fit, c_fit = fit_cubic_constrained(A_in, B_in, C_in)
 
     fig, axes = plt.subplots(1, 3, figsize=(18,6), sharex=True, sharey=True)
 
-    # linear
+    # plotu musim hodit normalni A, B, C a masku inliers -> vykresli mi jen inliers
     beak_plot_for(
         lambda x: x,
         A_glyph, B_glyph, C_glyph,
         title=f"Beak — Linear (y=x) — {glyph}",
-        axis=axes[0]
+        axis=axes[0],
+        mask=mask_inliers
     )
 
-    # gamma
     beak_plot_for(
         lambda x: gamma_function(x, g_fit),
         A_glyph, B_glyph, C_glyph,
         title=f"Beak — Gamma (gamma={g_fit:.3f}) — {glyph}",
-        axis=axes[1]
+        axis=axes[1],
+        mask=mask_inliers
     )
 
-    # poly3c
     beak_plot_for(
         lambda x: cubic_constrained_function(x, b_fit, c_fit),
         A_glyph, B_glyph, C_glyph,
         title=f"Beak — Poly3C (b={b_fit:.3f}, c={c_fit:.3f}) — {glyph}",
-        axis=axes[2]
+        axis=axes[2],
+        mask=mask_inliers
     )
 
     fig.suptitle(f"Beak plots for glyph '{glyph}'", fontsize=16)
@@ -460,6 +497,7 @@ def main():
 
     if SAVE_RESULTS_CSV:
         with open(OUTPUT_FILE_CSV, "w", encoding="utf-8") as f:
+            f.write("glyph_type,model,unsigned_euclidean_sum,signed_euclidean_sum\n")
             for g in np.unique(glyph_types):
                 metrics_lin = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: x)
                 g_fit = fit_gamma(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
@@ -467,9 +505,9 @@ def main():
                 b_fit, c_fit = fit_cubic_constrained(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
                 metrics_cc = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: cubic_constrained_function(x, b_fit, c_fit))
 
-                f.write(f"{g},linear,{metrics_lin['euclidean_sum']},{metrics_lin['signed_euclidean_sum']}\n")
-                f.write(f"{g},gamma,{metrics_gam['euclidean_sum']},{metrics_gam['signed_euclidean_sum']}\n")
-                f.write(f"{g},poly3c,{metrics_cc['euclidean_sum']},{metrics_cc['signed_euclidean_sum']}\n")
+                f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f}\n")
+                f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f}\n")
+                f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f}\n")
         print(f"[ok] Results saved to {OUTPUT_FILE_CSV}")
 
 
@@ -483,9 +521,9 @@ def main():
                 metrics_cc = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: cubic_constrained_function(x, b_fit, c_fit))
 
                 f.write(f"Glyph: {g}\n")
-                f.write(f"  Linear:    euclidean_sum = {metrics_lin['euclidean_sum']:.3f}       signed_euclidean_sum = {metrics_lin['signed_euclidean_sum']:.3f}\n")
-                f.write(f"  Gamma:     euclidean_sum = {metrics_gam['euclidean_sum']:.3f}       signed_euclidean_sum = {metrics_gam['signed_euclidean_sum']:.3f}\n")
-                f.write(f"  Poly3C:    euclidean_sum = {metrics_cc['euclidean_sum']:.3f}        signed_euclidean_sum = {metrics_cc['signed_euclidean_sum']:.3f}\n")
+                f.write(f"  Linear:    euclidean_sum = {metrics_lin['unsigned_euclidean_sum']:.3f}       signed_euclidean_sum = {metrics_lin['signed_euclidean_sum']:.3f}\n")
+                f.write(f"  Gamma:     euclidean_sum = {metrics_gam['unsigned_euclidean_sum']:.3f}       signed_euclidean_sum = {metrics_gam['signed_euclidean_sum']:.3f}\n")
+                f.write(f"  Poly3C:    euclidean_sum = {metrics_cc['unsigned_euclidean_sum']:.3f}        signed_euclidean_sum = {metrics_cc['signed_euclidean_sum']:.3f}\n")
                 f.write("\n")
         print(f"[ok] Results saved to {OUTPUT_FILE_TXT}")
 
