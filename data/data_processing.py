@@ -13,13 +13,13 @@ PATH = os.path.dirname(os.path.abspath(__file__))
 
 INPUT_FILE = os.path.join(PATH, "input/filtered_results.csv")
 OUTPUT_DIR = os.path.join(PATH, "images")
-OUTPUT_FILE_CSV = os.path.join(PATH, "output/model_comparisson.csv")
-OUTPUT_FILE_TXT = os.path.join(PATH, "output/model_comparisson.txt")
+OUTPUT_FILE_CSV = os.path.join(PATH, "output/model_comparison.csv")
+OUTPUT_FILE_TXT = os.path.join(PATH, "output/model_comparison.txt")
 
 
 PLOT_GAMMA = True
 PLOT_CC = True
-PLOT_BEAKS = True
+PLOT_BEAKS = False
 OUTLIERS_PCT = 5.0
 SAVE_PLOTS = False
 SAVE_RESULTS_CSV = True
@@ -333,7 +333,7 @@ def filter_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     # mask_inliers je maska - na indexech True jsou data vyhovujici podmince
     return A[mask_inliers], B[mask_inliers], C[mask_inliers], mask_inliers
 
-def compute_beak_error(A, B, C, function):
+def compute_beak_error(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     # beak_x je hodnota B od uzivatele, beak_y je ( f(A) + f(C) ) / 2
     beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
 
@@ -343,10 +343,17 @@ def compute_beak_error(A, B, C, function):
     unsigned_euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=False)
     signed_euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=True)
     
+    mask_inliers, _ = inliers_mask(unsigned_euclidean_distances, outliers_pct=outliers_pct)
+
+    unsigned_euclidean_distances = unsigned_euclidean_distances[mask_inliers]
+    signed_euclidean_distances   = signed_euclidean_distances[mask_inliers]
+
+    n_inliers = int(np.sum(mask_inliers))
+
     return dict(
         unsigned_euclidean_sum=np.sum(unsigned_euclidean_distances),
         signed_euclidean_sum=np.sum(signed_euclidean_distances),
-        n_points=len(beak_x)
+        n_points=n_inliers # po odstraneni outlieru
     )
 
 
@@ -495,7 +502,7 @@ def main():
 
     if SAVE_RESULTS_CSV:
         with open(OUTPUT_FILE_CSV, "w", encoding="utf-8") as f:
-            f.write("glyph_type,model,unsigned_euclidean_sum,signed_euclidean_sum\n")
+            f.write("glyph_type,model,unsigned_euclidean_sum,signed_euclidean_sum,n_points\n")
             for g in np.unique(glyph_types):
                 metrics_lin = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: x)
                 g_fit = fit_gamma(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
@@ -503,9 +510,9 @@ def main():
                 b_fit, c_fit = fit_cubic_constrained(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
                 metrics_cc = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: cubic_constrained_function(x, b_fit, c_fit))
 
-                f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f}\n")
-                f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f}\n")
-                f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f}\n")
+                f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n_points']}\n")
+                f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n_points']}\n")
+                f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n_points']}\n")
         print(f"[ok] Results saved to {OUTPUT_FILE_CSV}")
 
 
