@@ -227,11 +227,13 @@ def linear_function(x):
 
 
 # bude vracet seznam bodu
-def beak_points(A, B, C, function):
+def beak_points(A, B, C, function, return_all = False):
     fA = function(A)
     fC = function(C)
     beak_y = (fA + fC) / 2
     beak_x = B
+    if return_all:
+        return beak_x, beak_y, fA, fC
     return beak_x, beak_y
 
 
@@ -241,44 +243,10 @@ def plot_curve(function):
     y = function(x)
     return x, y
 
-
+# TODO: vracet signed i unsigned
 # pro kazdy bod B najde nejblizsi bod na krivce
 # suma nad krivkou a pod krivkou by se mela blizit 0
-def euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y):
-    beak_x = np.asarray(beak_x, float)
-    beak_y = np.asarray(beak_y, float)
-    curve_x = np.asarray(curve_x, float)
-    curve_y = np.asarray(curve_y, float)
-
-    n_curve = len(curve_x)
-    n_beaks = len(beak_x)
-
-    distances = np.empty(n_beaks, float)
-
-    for i, (xb, yb) in enumerate(zip(beak_x, beak_y)):
-        j = 0
-        while j < n_curve and curve_x[j] < xb:
-            j += 1
-
-        cand = []
-        if j < n_curve:     
-            cand.append(j)
-        if j-1 >= 0:  
-            cand.append(j-1)
-
-        best = None
-        for k in cand:
-            dx = xb - curve_x[k]
-            dy = yb - curve_y[k]
-            d = np.sqrt(dx*dx + dy*dy)
-            if (best is None) or (d < best):
-                best = d
-
-        distances[i] = 0.0 if best is None else best
-    return distances
-
-
-def signed_euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y):
+def euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y, select_signed = False):
     beak_x = np.asarray(beak_x, float)
     beak_y = np.asarray(beak_y, float)
     curve_x = np.asarray(curve_x, float)
@@ -306,18 +274,21 @@ def signed_euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y):
             dx = xb - curve_x[k]
             dy = yb - curve_y[k]
             d = np.sqrt(dx*dx + dy*dy)
-            
-            if dy >= 0:
-                sign = 1
-            else:
-                sign = -1
+
+            if select_signed:
+                if dy >= 0:
+                    sign = 1
+                else:
+                    sign = -1
 
             if (best is None) or (d < best):
                 best = d
-                best_sign = sign
+                if select_signed:
+                    best_sign = sign
 
-        distances[i] = 0.0 if best is None else best * best_sign
+        distances[i] = 0.0 if best is None else best * (best_sign if select_signed else 1)
     return distances
+
 
 # nejvyssi hodnoty budu mazat - nejvetsi euklid vzdalenost
 # potrebuji predat np.array euklidovskych unsigned vzdalenosti a procento outlieru k odstraneni
@@ -326,22 +297,46 @@ def signed_euclidean_distance_from_curve(beak_x, beak_y, curve_x, curve_y):
 # posledni index ponechaneho bodu by mel byt int(KEEP * len(distances))
 # udelam si masku pro vybrane body a vratim ji
 # tuhle masku muzu pouzit i pri vykresleni zobackuuu
-def remove_outliers_mask(distances, outliers_pct = OUTLIERS_PCT):
-    pass
+# TODO: asi bude lepsi mit jako parametry funkce body, ze kterych se pocitaji vzdalenosti??? dunno
+# vstup bude function, x np.array 1000 dilku, beak_x (B) a beak_y (f(A) + f(C)) / 2
+def inliers_mask(distances,outliers_pct = OUTLIERS_PCT):
+    # kdyz budu mit OUTLIERS_PCT 0.0, chci vratit vsechny body
+    # mask bude mit delku len(distances) a vsechny hodnoty True
+    n_points = len(distances)
+    
+    if outliers_pct <= 0.0:
+        mask = np.ones(n_points, dtype=bool) # vsechny body jsou inliers, vraci pole True o delce n_points
+        sorted_idx = np.arange(n_points)  # vracim serazene indexy - nic s nima nedelam (0, 1, 2, ..., n_points-1)
+        return mask, sorted_idx
 
+    keep = 1.0 - (outliers_pct / 100.0)
+
+    n_keep = int(keep * n_points) # "pretypovani" na int automaticky orizne
+
+    sorted_idx = np.argsort(distances)
+    inlier_idx = sorted_idx[:n_keep] # do indexu, ktery odpovida procento * delka si to necham
+
+    mask = np.zeros(n_points, dtype=bool) # masku nastavim na False
+    mask[inlier_idx] = True # na indexech, ktere si chci nechat, dam True
+
+    return mask, sorted_idx
 
 def compute_beak_error(A, B, C, function):
-    beak_x, beak_y = beak_points(A, B, C, function)
+    # beak_x je hodnota B od uzivatele, beak_y je ( f(A) + f(C) ) / 2
+    beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
 
     x = np.linspace(0, 1, 1000)
     y = function(x)
-    euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y)
-    signed_euclidean_distances = signed_euclidean_distance_from_curve(beak_x, beak_y, x, y)
 
-    # TODO: outliers
+    unsigned_euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=False)
+    signed_euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=True)
+
+    inliers = inliers_mask(unsigned_euclidean_distances)
+    unsigned_euclidean_distances = unsigned_euclidean_distances[inliers]
+    signed_euclidean_distances = signed_euclidean_distances[inliers]
 
     return dict(
-        euclidean_sum=np.sum(euclidean_distances),
+        unsigned_euclidean_sum=np.sum(unsigned_euclidean_distances),
         signed_euclidean_sum=np.sum(signed_euclidean_distances),
         n_points=len(beak_x)
     )
@@ -349,18 +344,23 @@ def compute_beak_error(A, B, C, function):
 
 def beak_plot_for(function, A, B, C, title, axis):
     # hlavní křivka
-    xs = np.linspace(0, 1, 1000)
-    ys = function(xs)
+    x = np.linspace(0, 1, 1000)
+    y = function(x)
 
-    axis.plot(xs, ys, lw=2, label="model")
+    axis.plot(x, y, lw=2, label="model")
 
     # zobáčkové body
-    fA = function(A)
-    fC = function(C)
-    yB = 0.5*(fA + fC)
+    beak_x, beak_y, fA, fC = beak_points(A, B, C, function, return_all=True)
+
+    # TODO: vykreslit bez outlieru
+    # Vypocitam unsigned euklid vzdalenosti
+    
+    # Maskou odstranim outliery
+
+    # Vykreslim bez outlieru
 
     # A/C body a úsečky k B
-    for Ai, Bi, Ci, yAi, yBi, yCi in zip(A, B, C, fA, yB, fC):
+    for Ai, Bi, Ci, yAi, yBi, yCi in zip(A, beak_x, C, fA, beak_y, fC):
         axis.plot([Ai, Bi], [yAi, yBi], color='gray', linewidth=0.3)
         axis.plot([Ci, Bi], [yCi, yBi], color='gray', linewidth=0.3)
         axis.scatter([Ai, Ci], [yAi, yCi], color='black', s=8)
@@ -375,18 +375,18 @@ def beak_plot_for(function, A, B, C, title, axis):
 
 
 def beak_plots_all_models_for_glyph(glyph, glyph_types, A, B, C, outdir=OUTPUT_DIR):
-    m = (glyph_types == glyph)
-    A_g, B_g, C_g = A[m], B[m], C[m]
+    glyph_mask = (glyph_types == glyph)
+    A_glyph, B_glyph, C_glyph = A[glyph_mask], B[glyph_mask], C[glyph_mask]
 
-    g_fit = fit_gamma(A_g, B_g, C_g)
-    b_fit, c_fit = fit_cubic_constrained(A_g, B_g, C_g)
+    g_fit = fit_gamma(A_glyph, B_glyph, C_glyph)
+    b_fit, c_fit = fit_cubic_constrained(A_glyph, B_glyph, C_glyph)
 
     fig, axes = plt.subplots(1, 3, figsize=(18,6), sharex=True, sharey=True)
 
     # linear
     beak_plot_for(
         lambda x: x,
-        A_g, B_g, C_g,
+        A_glyph, B_glyph, C_glyph,
         title=f"Beak — Linear (y=x) — {glyph}",
         axis=axes[0]
     )
@@ -394,7 +394,7 @@ def beak_plots_all_models_for_glyph(glyph, glyph_types, A, B, C, outdir=OUTPUT_D
     # gamma
     beak_plot_for(
         lambda x: gamma_function(x, g_fit),
-        A_g, B_g, C_g,
+        A_glyph, B_glyph, C_glyph,
         title=f"Beak — Gamma (gamma={g_fit:.3f}) — {glyph}",
         axis=axes[1]
     )
@@ -402,7 +402,7 @@ def beak_plots_all_models_for_glyph(glyph, glyph_types, A, B, C, outdir=OUTPUT_D
     # poly3c
     beak_plot_for(
         lambda x: cubic_constrained_function(x, b_fit, c_fit),
-        A_g, B_g, C_g,
+        A_glyph, B_glyph, C_glyph,
         title=f"Beak — Poly3C (b={b_fit:.3f}, c={c_fit:.3f}) — {glyph}",
         axis=axes[2]
     )
