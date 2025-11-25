@@ -314,10 +314,10 @@ def inliers_mask(distances,outliers_pct = OUTLIERS_PCT):
     n_keep = int(keep * n_points) # "pretypovani" na int automaticky orizne
 
     sorted_idx = np.argsort(distances)
-    inlier_idx = sorted_idx[:n_keep] # do indexu, ktery odpovida procento * delka si to necham
+    inlier_slice = sorted_idx[:n_keep] # do indexu, ktery odpovida procento * delka si to necham
 
     mask = np.zeros(n_points, dtype=bool) # masku nastavim na False
-    mask[inlier_idx] = True # na indexech, ktere si chci nechat, dam True
+    mask[inlier_slice] = True # na indexech, ktere si chci nechat, dam True
 
     return mask, sorted_idx
 
