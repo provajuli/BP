@@ -486,6 +486,12 @@ def simple_colour_patch(x: float, canvas: mg.Canvas) -> None:
         style="fill",
     )
 
+
+# TODO: implement
+def shattered_glass():
+    pass
+
+
 SIMPLE_GLYPHS = {
     "line": horizontal_line,
     "square": simple_scaled_square,
