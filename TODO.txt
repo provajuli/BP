@@ -33,12 +33,14 @@ plot, ktery vhodne zobrazi modely - linearni, gamma, polynomialni - muze byt int
 normalizace metrik - prumer, median - asi ne
 korelacni koeficient mezi predikovanym B a skutecnym B?
 
-error - error plot - vyhodnoceni nejlepsiho modelu podle nejmensiho obsahu ctyruhelniku 
+ERROR - ERROR musim normalizovat pres pocet trialu pro jednotlive glyphy (muzu si prumery dat rovnou do csv duh), nastavit xlim a ylim podle max a min
+    error - error plot - vyhodnoceni nejlepsiho modelu podle nejmensiho obsahu ctyruhelniku - TODO contour lines, vylepsit legend, vyhodnoceni obsahu
 dalsi model pro data - poly3 neomezeny, dalsi sigmoid model?
 zverejneni pyqt appky a vyreseni posilani dat (uprava ukladani dat, dotaznik na zaslani csv souboru... nebo musim delat server? :,) )
-outliers - podle procent - nejvzdalenejsich x procent vyhodim pryc
+outliers - podle procent - nejvzdalenejsich x procent vyhodim pryc - DONE
+udelat vlastni glyphy - napady: praskajici sklo, svicka s voskem
 
 figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu 
 
-POTOM:
-optimalizace - cerpej z IZV
+POTOM, kdyz bude cas:
+(aspon trochu) optimalizace - cerpej z IZV
