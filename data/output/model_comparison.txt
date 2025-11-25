@@ -19,9 +19,9 @@ Glyph: flower
   Poly3C:    euclidean_sum = 1.820        signed_euclidean_sum = -0.027
 
 Glyph: line
-  Linear:    euclidean_sum = 1.966       signed_euclidean_sum = 0.092
-  Gamma:     euclidean_sum = 1.970       signed_euclidean_sum = 0.120
-  Poly3C:    euclidean_sum = 1.958        signed_euclidean_sum = -0.201
+  Linear:    euclidean_sum = 1.975       signed_euclidean_sum = 0.083
+  Gamma:     euclidean_sum = 1.979       signed_euclidean_sum = 0.113
+  Poly3C:    euclidean_sum = 1.967        signed_euclidean_sum = -0.208
 
 Glyph: polygon
   Linear:    euclidean_sum = 2.861       signed_euclidean_sum = 0.431
