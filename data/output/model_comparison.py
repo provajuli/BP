@@ -68,7 +68,7 @@ def error_error_plot(results, glyph_dict, title, output):
             
     plt.xlabel("Unsigned Euclidean Error Sum")
     plt.ylabel("Signed Euclidean Error Sum")
-    # TODO: nastavit limity podle normalizovanych hodnot
+    # TODO: nastavit limity podle normalizovanych hodnot, mozna si ty mini cisla vynasobim konstantou
     plt.xlim(0, 0.04)
     plt.ylim(-0.03, 0.03)
     plt.title(f"Error Comparison for {title} Glyphs")
@@ -79,9 +79,7 @@ def error_error_plot(results, glyph_dict, title, output):
     print("Saved plot to", output)
 
 results = open_file()
-#for row in results:
-#    print(row)
 
+# mozna si to plotnu pro jednotlive glyphy, uvidime... 
 error_error_plot(results, SIMPLE_GLYPHS, "Simple", SIMPLE_OUTPUT_PLOT)
-
 error_error_plot(results, ADVANCED_GLYPHS, "Advanced", ADVANCED_OUTPUT_PLOT)
