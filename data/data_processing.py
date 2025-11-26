@@ -12,10 +12,10 @@ import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 INPUT_FILE = os.path.join(PATH, "input/filtered_results.csv")
-OUTPUT_DIR = os.path.join(PATH, "images")
-OUTPUT_FILE_CSV = os.path.join(PATH, "output/model_comparison.csv")
-OUTPUT_FILE_TXT = os.path.join(PATH, "output/model_comparison.txt")
+OUTPUT_DIR = os.path.join(PATH, "images/unfiltered_outliers")
+OUTLIER_OUTPUT_DIR = os.path.join(PATH, "output/unfiltered_outliers")
 
+OUTLIER_OUTPUT_FILE_CSV = os.path.join(OUTLIER_OUTPUT_DIR, "model_comparison.csv")
 
 PLOT_GAMMA = True
 PLOT_CC = True
@@ -480,6 +480,8 @@ def main():
         for name, n, g in rows_g:
             print(f"{name:<25} {n:<5} {g:<10.5f}")
         out = os.path.join(OUTPUT_DIR, "gamma_curves.png")
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
         plot_gamma_model(rows_g, out)
         print("[ok] gamma_curves.png")
 
@@ -493,6 +495,8 @@ def main():
         for name, n, a_, b_, c_, d_ in rows_cc:
             print(f"{name:<25} {n:<5} {a_:<10.5f} {b_:<10.5f} {c_:<10.5f} {d_:<10.5f}")
         out = os.path.join(OUTPUT_DIR, "cubic_constrained_curves.png")
+        if not os.path.exists(OUTPUT_DIR):
+            os.makedirs(OUTPUT_DIR)
         plot_cubic_constrained_model(rows_cc, out)
         print("[ok] cubic_constrained_curves.png")
 
@@ -504,7 +508,9 @@ def main():
 
 
     if SAVE_RESULTS_CSV:
-        with open(OUTPUT_FILE_CSV, "w", encoding="utf-8") as f:
+        if not os.path.exists(OUTLIER_OUTPUT_DIR):
+            os.makedirs(OUTLIER_OUTPUT_DIR)
+        with open(OUTLIER_OUTPUT_FILE_CSV, "w", encoding="utf-8") as f:
             f.write("glyph_type,model,unsigned_euclidean_sum,signed_euclidean_sum,n_points_in,avg_unsigned,avg_signed\n")
             for g in np.unique(glyph_types):
                 metrics_lin = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: x)
@@ -516,24 +522,7 @@ def main():
                 f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n_points_in']},{metrics_lin['avg_unsigned']:.5f},{metrics_lin['avg_signed']:.5f}\n")
                 f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n_points_in']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
                 f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n_points_in']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
-        print(f"[ok] Results saved to {OUTPUT_FILE_CSV}")
-
-
-    if SAVE_RESULTS_TXT:
-        with open(OUTPUT_FILE_TXT, "w", encoding="utf-8") as f:
-            for g in np.unique(glyph_types):
-                metrics_lin = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: x)
-                g_fit = fit_gamma(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
-                metrics_gam = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: gamma_function(x, g_fit))
-                b_fit, c_fit = fit_cubic_constrained(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
-                metrics_cc = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: cubic_constrained_function(x, b_fit, c_fit))
-
-                f.write(f"Glyph: {g}\n")
-                f.write(f"  Linear:    euclidean_sum = {metrics_lin['unsigned_euclidean_sum']:.3f}       signed_euclidean_sum = {metrics_lin['signed_euclidean_sum']:.3f}\n")
-                f.write(f"  Gamma:     euclidean_sum = {metrics_gam['unsigned_euclidean_sum']:.3f}       signed_euclidean_sum = {metrics_gam['signed_euclidean_sum']:.3f}\n")
-                f.write(f"  Poly3C:    euclidean_sum = {metrics_cc['unsigned_euclidean_sum']:.3f}        signed_euclidean_sum = {metrics_cc['signed_euclidean_sum']:.3f}\n")
-                f.write("\n")
-        print(f"[ok] Results saved to {OUTPUT_FILE_TXT}")
+        print(f"[ok] Results saved to {OUTLIER_OUTPUT_FILE_CSV}")
 
 
 if __name__ == "__main__":
