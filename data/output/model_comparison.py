@@ -4,8 +4,8 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-sys.path.insert(0, '/home/jp/a_school/BP')
-from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
+#sys.path.insert(0, '/home/jp/a_school/BP')
+#from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 FILENAME = os.path.join(PATH, 'model_comparison.csv')
@@ -27,6 +27,7 @@ MARKERS = {
     "poly3c": "^",
 }
 
+# toto asi potreba nebude, jen potrebuju seznam glyphu... import z app.glyph_set opravit
 COLORS = {
     "circle": "r",
     "square": "b",
@@ -44,35 +45,30 @@ COLORS = {
 # glyphy budou odlisene barvou 
 # modely budou odlisene tvarem scatter points
 # TODO: pridat contour lines, upravit legend
-def error_error_plot(results, glyph_dict, title, output):
+def error_error_plot(results, glyph, title, output):
     plt.figure (figsize=(8, 6))
 
-    glyph_types = glyph_dict.keys()
+    for model, marker in MARKERS.items():
+        x_vals = []
+        y_vals = []
+        for r in results:
+            if r['glyph_type'] == glyph and r['model'] == model:
+                avg_unsigned = r['avg_unsigned']
+                avg_signed = r['avg_signed']
 
-    for r in results:
-        if(r['glyph_type'] in glyph_types):
-            glyph = r['glyph_type']
-            model = r['model']
-            
-            # TODO: NORMALIZOVAT PRES POCET TRIALU
-            # TODO: upravit pls legendu, to je hruza :,)
-            unsigned_sum = float(r['unsigned_euclidean_sum']) / float(r['n_points'])
-            signed_sum = float(r['signed_euclidean_sum']) / float(r['n_points'])
+                # normalizace dat
+                x_vals.append(float(avg_unsigned))
+                y_vals.append(float(avg_signed))
 
-            scatter_point_x, scatter_point_y = unsigned_sum, signed_sum
-
-            plt.scatter(scatter_point_x, scatter_point_y, 
-                        color=COLORS[glyph], 
-                        marker=MARKERS[model],
-                        label=f"{glyph} - {model}")
-            
-    plt.xlabel("Unsigned Euclidean Error Sum")
-    plt.ylabel("Signed Euclidean Error Sum")
+                plt.scatter(float(avg_unsigned), float(avg_signed), 
+                            color=COLORS[glyph], marker=marker, s=80,
+                            label=f"{model.capitalize()} Model")
+                
+    plt.xlabel("Unsigned Euclidean Error Average per Point")
+    plt.ylabel("Signed Euclidean Error Average per Point")
     # TODO: nastavit limity podle normalizovanych hodnot, mozna si ty mini cisla vynasobim konstantou
-    plt.xlim(0, 0.04)
-    plt.ylim(-0.03, 0.03)
-    plt.title(f"Error Comparison for {title} Glyphs")
-    plt.legend(loc='best', fontsize='small')
+    plt.title(f"Error Comparison for {title} Glyph")
+    plt.legend(loc='best', fontsize='small', title="Models", title_fontsize='medium')
     plt.grid(True, linestyle="--", alpha=0.5)
     plt.savefig(output, dpi=150, bbox_inches="tight")
     plt.close()
@@ -81,5 +77,5 @@ def error_error_plot(results, glyph_dict, title, output):
 results = open_file()
 
 # mozna si to plotnu pro jednotlive glyphy, uvidime... 
-error_error_plot(results, SIMPLE_GLYPHS, "Simple", SIMPLE_OUTPUT_PLOT)
-error_error_plot(results, ADVANCED_GLYPHS, "Advanced", ADVANCED_OUTPUT_PLOT)
+for g in COLORS.keys():
+    error_error_plot(results, g, g.capitalize(), f"error_error_comparison_{g}.png")
