@@ -45,7 +45,7 @@ def open_data_file(filename = INPUT_FILE):
 
 
 def normalize_data(x):
-    return np.clip(x / 100.0, EPS, 1.0 - EPS)
+    return np.clip(x / 100.0, 0.0, 1.0)
 # -------------------------------------------------------------
 
 
@@ -349,11 +349,15 @@ def compute_beak_error(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     signed_euclidean_distances   = signed_euclidean_distances[mask_inliers]
 
     n_inliers = int(np.sum(mask_inliers))
+    unsigned_euclidean_sum=np.sum(unsigned_euclidean_distances)
+    signed_euclidean_sum=np.sum(signed_euclidean_distances)
 
     return dict(
-        unsigned_euclidean_sum=np.sum(unsigned_euclidean_distances),
-        signed_euclidean_sum=np.sum(signed_euclidean_distances),
-        n_points=n_inliers # po odstraneni outlieru
+        unsigned_euclidean_sum=unsigned_euclidean_sum,
+        signed_euclidean_sum=signed_euclidean_sum,
+        n_points_in=n_inliers, # po odstraneni outlieru
+        avg_unsigned=unsigned_euclidean_sum / n_inliers if n_inliers > 0 else 0,
+        avg_signed=signed_euclidean_sum / n_inliers if n_inliers > 0 else 0
     )
 
 
@@ -502,7 +506,7 @@ def main():
 
     if SAVE_RESULTS_CSV:
         with open(OUTPUT_FILE_CSV, "w", encoding="utf-8") as f:
-            f.write("glyph_type,model,unsigned_euclidean_sum,signed_euclidean_sum,n_points\n")
+            f.write("glyph_type,model,unsigned_euclidean_sum,signed_euclidean_sum,n_points_in,avg_unsigned,avg_signed\n")
             for g in np.unique(glyph_types):
                 metrics_lin = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: x)
                 g_fit = fit_gamma(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
@@ -510,9 +514,9 @@ def main():
                 b_fit, c_fit = fit_cubic_constrained(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g])
                 metrics_cc = compute_beak_error(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], lambda x: cubic_constrained_function(x, b_fit, c_fit))
 
-                f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n_points']}\n")
-                f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n_points']}\n")
-                f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n_points']}\n")
+                f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n_points_in']},{metrics_lin['avg_unsigned']:.5f},{metrics_lin['avg_signed']:.5f}\n")
+                f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n_points_in']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
+                f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n_points_in']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
         print(f"[ok] Results saved to {OUTPUT_FILE_CSV}")
 
 
