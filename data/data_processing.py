@@ -19,9 +19,8 @@ OUTPUT_FILE_TXT = os.path.join(PATH, "output/model_comparison.txt")
 
 PLOT_GAMMA = True
 PLOT_CC = True
-PLOT_BEAKS = False
+SAVE_OUTLIER_BEAK_PLOTS = True
 OUTLIERS_PCT = 5.0
-SAVE_PLOTS = False
 SAVE_RESULTS_CSV = True
 SAVE_RESULTS_TXT = True
 
@@ -456,9 +455,9 @@ def beak_plots_all_models_for_glyph(glyph, glyph_types, A, B, C, outdir=OUTPUT_D
     fig.suptitle(f"Beak plots for glyph '{glyph}'", fontsize=16)
     plt.tight_layout(rect=[0, 0, 1, 0.95])
 
-    plt.savefig(os.path.join(outdir, f"beak_plots_{glyph}.png"), dpi=120, bbox_inches="tight")
+    plt.savefig(os.path.join(outdir, f"outlier_beak_plots_{glyph}.png"), dpi=120, bbox_inches="tight")
     plt.close(fig)
-    print(f"  [ok] {glyph}: saved beak_plots_{glyph}.png")
+    print(f"  [ok] {glyph}: saved outlier_beak_plots_{glyph}.png")
 
 
 ###############################################
@@ -498,7 +497,7 @@ def main():
         print("[ok] cubic_constrained_curves.png")
 
 
-    if PLOT_BEAKS:
+    if SAVE_OUTLIER_BEAK_PLOTS:
         print("\n[run] Beak plots per glyph (linear/gamma/poly3c)")
         for g in np.unique(glyph_types):
             beak_plots_all_models_for_glyph(g, glyph_types, sizeA, sizeB, sizeC, outdir=OUTPUT_DIR)
