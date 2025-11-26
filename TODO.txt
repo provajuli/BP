@@ -40,6 +40,11 @@ zverejneni pyqt appky a vyreseni posilani dat (uprava ukladani dat, dotaznik na 
 outliers - podle procent - nejvzdalenejsich x procent vyhodim pryc - DONE
 udelat vlastni glyphy - napady: praskajici sklo, svicka s voskem
 
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+FAKT BIG TODO:
+    po odstraneni outliers musim znovu fitovat model
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu 
 
 zkoumani glyphu se "stredem" v bode 50
