@@ -4,8 +4,8 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
-#sys.path.insert(0, '/home/jp/a_school/BP')
-#from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
+sys.path.insert(0, '/home/jp/a_school/BP')
+from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 FILENAME = os.path.join(PATH, 'model_comparison.csv')
@@ -77,5 +77,5 @@ def error_error_plot(results, glyph, title, output):
 results = open_file()
 
 # mozna si to plotnu pro jednotlive glyphy, uvidime... 
-for g in COLORS.keys():
+for g in {**SIMPLE_GLYPHS, **ADVANCED_GLYPHS}:
     error_error_plot(results, g, g.capitalize(), f"error_error_comparison_{g}.png")
