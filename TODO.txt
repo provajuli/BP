@@ -42,12 +42,13 @@ udelat vlastni glyphy - napady: praskajici sklo, svicka s voskem
 
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 FAKT BIG TODO:
-    po odstraneni outliers musim znovu fitovat model
+    po odstraneni outliers musim znovu fitovat model DOOOOOONE hehehe
+    REFACTOR, je to trosku des guys
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu 
 
-zkoumani glyphu se "stredem" v bode 50
+zkoumani glyphu s maximem v bode 50???
 
 POTOM, kdyz bude cas:
 (aspon trochu) optimalizace - cerpej z IZV

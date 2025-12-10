@@ -12,19 +12,20 @@ import os
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 INPUT_FILE = os.path.join(PATH, "input/filtered_results.csv")
-IMAGES_OUTPUT_DIR = os.path.join(PATH, "images/unfiltered_outliers")
+IMAGES_OUTPUT_DIR = os.path.join(PATH, "images")
 OUTLIER_OUTPUT_DIR = os.path.join(PATH, "output/unfiltered_outliers")
-INLIER_OUTPUT_DIR = os.path.join(PATH, "output/filtered/inliers")
+INLIER_OUTPUT_DIR = os.path.join(PATH, "output/filtered_inliers")
 
-OUTLIER_OUTPUT_FILE_CSV = os.path.join(OUTLIER_OUTPUT_DIR, "model_comparison.csv")
+OUTLIER_OUTPUT_FILE_CSV = os.path.join(OUTLIER_OUTPUT_DIR, "out_model_comparison.csv")
+INLIER_OUTPUT_FILE_CSV = os.path.join(INLIER_OUTPUT_DIR, "in_model_comparison.csv")
 
 PLOT_GAMMA = True
 PLOT_CC = True
-SAVE_OUTLIER_BEAK_PLOTS = False
-SAVE_INLIER_BEAK_PLOTS = False
+SAVE_OUTLIER_BEAK_PLOTS = True
+SAVE_INLIER_BEAK_PLOTS = True
 OUTLIERS_PCT = 5.0
-SAVE_RESULTS_CSV = True
-SAVE_RESULTS_TXT = True
+SAVE_RESULTS_CSV_OUT = True
+SAVE_RESULTS_CSV_IN= True
 
 
 GLYPH_TYPES = []
@@ -321,6 +322,7 @@ def inliers_mask(distances, outliers_pct = OUTLIERS_PCT):
     return mask, sorted_idx # vraci masku a poradi indexu podle velikosti vzdalenosti
 
 
+# vraci trojice A, B, C, ktere jsou inliers a masku 
 def filter_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
 
@@ -359,7 +361,7 @@ def compute_beak_error_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     )
 
 
-def beak_plot_for_glyph(function, A, B, C, title, axis, mask=None):
+def beak_plot_for_glyph(function, A, B, C, title, axis, mask=None, plot_outliers=False):
     # krivka modelu
     x = np.linspace(0, 1, 1000)
     y = function(x)
@@ -389,11 +391,12 @@ def beak_plot_for_glyph(function, A, B, C, title, axis, mask=None):
     fC_out = fC[~mask]
 
     # vykreslit outliers
-    for Ai, Bi, Ci, yAi, yBi, yCi in zip(A_out, beak_x_out, C_out, fA_out, beak_y_out, fC_out):
-        axis.plot([Ai, Bi], [yAi, yBi], color='red', linewidth=0.3, alpha=0.4)
-        axis.plot([Ci, Bi], [yCi, yBi], color='red', linewidth=0.3, alpha=0.4)
-        axis.scatter([Ai, Ci], [yAi, yCi], color='darkorange', s=8, alpha=0.4)
-        axis.scatter([Bi], [yBi], color='red', s=14, alpha=0.8)
+    if(plot_outliers):
+        for Ai, Bi, Ci, yAi, yBi, yCi in zip(A_out, beak_x_out, C_out, fA_out, beak_y_out, fC_out):
+            axis.plot([Ai, Bi], [yAi, yBi], color='red', linewidth=0.3, alpha=0.4)
+            axis.plot([Ci, Bi], [yCi, yBi], color='red', linewidth=0.3, alpha=0.4)
+            axis.scatter([Ai, Ci], [yAi, yCi], color='darkorange', s=8, alpha=0.4)
+            axis.scatter([Bi], [yBi], color='red', s=14, alpha=0.8)
 
     # vykreslit inliers
     for Ai, Bi, Ci, yAi, yBi, yCi in zip(A_in, beak_x_in, C_in, fA_in, beak_y_in, fC_in):
@@ -414,42 +417,53 @@ def beak_plots_all_models_for_glyph_outliers(glyph, glyph_types, A, B, C, outdir
     glyph_mask = (glyph_types == glyph)
     A_glyph, B_glyph, C_glyph = A[glyph_mask], B[glyph_mask], C[glyph_mask]
 
-    # odstranim outliers na zaklade linearniho modelu 
-    A_in, B_in, C_in, mask_inliers = filter_outliers(
+    # ===== 1) LINEÁRNÍ MODEL (y = x) =====
+    f_lin = lambda x: x
+    mask_lin_in = mask_for_model(A_glyph, B_glyph, C_glyph, f_lin, outliers_pct=OUTLIERS_PCT)
+    # lineární model se nerefituje, je prostě y = x
+
+    # ===== 2) GAMMA MODEL (robustní fit) =====
+    gamma_fit, mask_gam_in = fit_gamma_no_outliers(A_glyph, B_glyph, C_glyph, outliers_pct=OUTLIERS_PCT)
+    f_gam = lambda x: gamma_function(x, gamma_fit)
+
+    # ===== 3) POLY3C MODEL (robustní fit) =====
+    (b_fit, c_fit), mask_cc_in = fit_poly3c_no_outliers(
         A_glyph, B_glyph, C_glyph,
-        lambda x: x,             
-        OUTLIERS_PCT
+        outliers_pct=OUTLIERS_PCT
     )
+    f_cc = lambda x: cubic_constrained_function(x, b_fit, c_fit)
 
-    # do modelu posilam jen inliers
-    g_fit = fit_gamma(A_in, B_in, C_in)
-    b_fit, c_fit = fit_cubic_constrained(A_in, B_in, C_in)
+    # ===== 4) Vykreslení 3 subplotů vedle sebe =====
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharex=True, sharey=True)
 
-    fig, axes = plt.subplots(1, 3, figsize=(18,6), sharex=True, sharey=True)
-
-    # plotu musim hodit normalni A, B, C a masku inliers -> vykresli mi jen inliers
+    # Linear — outliery i inliery podle linear modelu
     beak_plot_for_glyph(
-        lambda x: x,
+        f_lin,
         A_glyph, B_glyph, C_glyph,
         title=f"Beak — Linear (y=x) — {glyph}",
         axis=axes[0],
-        mask=mask_inliers
+        mask=mask_lin_in,
+        plot_outliers = True
     )
 
+    # Gamma — outliery/inliery podle gamma modelu + refit
     beak_plot_for_glyph(
-        lambda x: gamma_function(x, g_fit),
+        f_gam,
         A_glyph, B_glyph, C_glyph,
-        title=f"Beak — Gamma (gamma={g_fit:.3f}) — {glyph}",
+        title=f"Beak — Gamma (gamma={gamma_fit:.3f}) — {glyph}",
         axis=axes[1],
-        mask=mask_inliers
+        mask=mask_gam_in,
+        plot_outliers=True
     )
 
+    # Poly3C — outliery/inliery podle poly3c modelu + refit
     beak_plot_for_glyph(
-        lambda x: cubic_constrained_function(x, b_fit, c_fit),
+        f_cc,
         A_glyph, B_glyph, C_glyph,
         title=f"Beak — Poly3C (b={b_fit:.3f}, c={c_fit:.3f}) — {glyph}",
         axis=axes[2],
-        mask=mask_inliers
+        mask=mask_cc_in,
+        plot_outliers=True
     )
 
     fig.suptitle(f"Beak plots for glyph '{glyph}'", fontsize=16)
@@ -473,16 +487,181 @@ def beak_plots_all_models_for_glyph_outliers(glyph, glyph_types, A, B, C, outdir
 # 4. chci vypsat i errors pro jen inlier data
 # 5. plot jen pro inliers
 # bude pocitat masku pro dany model 
-def mask_for_model(A, B, C, function, outliers=OUTLIERS_PCT):
-    pass
+def mask_for_model(A, B, C, function, outliers_pct=OUTLIERS_PCT):
+    beak_x, beak_y = beak_points(A, B, C, function, return_all = False)
+
+    x_curve = np.linspace(0, 1, 1000)
+    y_curve = function(x_curve)
+
+    distances = euclidean_distance_from_curve(beak_x, beak_y, x_curve, y_curve, select_signed=False)
+
+    mask_inliers, _ = inliers_mask(distances, outliers_pct=outliers_pct)
+    return mask_inliers
 
 
-def fit_gamma_no_outliers(A, B, C, outliers=OUTLIERS_PCT):
-    pass
+def fit_gamma_no_outliers(A, B, C, outliers_pct=OUTLIERS_PCT):
+    gamma_out = fit_gamma(A, B, C)
+    f0 = lambda x: gamma_function(x, gamma_out)
+
+    mask_inliers = mask_for_model(A, B, C, f0, outliers_pct=outliers_pct)
+
+    gamma_in = fit_gamma(A[mask_inliers], B[mask_inliers], C[mask_inliers])
+
+    return gamma_in, mask_inliers
 
 
-def fit_poly3c_no_outliers(A, B, C, outliers=OUTLIERS_PCT):
-    pass
+def fit_poly3c_no_outliers(A, B, C, outliers_pct=OUTLIERS_PCT):
+    b_out, c_out = fit_cubic_constrained(A, B, C)
+    f0 = lambda x: cubic_constrained_function(x, b_out, c_out)
+
+    mask_inliers = mask_for_model(A, B, C, f0, outliers_pct=outliers_pct)
+
+    b_in, c_in = fit_cubic_constrained(A[mask_inliers], B[mask_inliers], C[mask_inliers])
+
+    return (b_in, c_in), mask_inliers
+
+
+def compute_beak_error_no_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
+
+    # Získám zobáčky
+    beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
+
+    # Vypočtu křivku modelu
+    x = np.linspace(0, 1, 1000)
+    y = function(x)
+
+    # distances
+    unsigned = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=False)
+    signed   = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=True)
+
+    # maska inliers
+    mask, _ = inliers_mask(unsigned, outliers_pct)
+
+    unsigned_in = unsigned[mask]
+    signed_in   = signed[mask]
+
+    unsigned_sum = float(np.sum(unsigned_in))
+    signed_sum   = float(np.sum(signed_in))
+
+    n = len(unsigned_in)
+
+    return dict(
+        unsigned_euclidean_sum=unsigned_sum,
+        signed_euclidean_sum=signed_sum,
+        n=n,
+        avg_unsigned=unsigned_sum / n,
+        avg_signed=signed_sum / n,
+    )
+
+
+def beak_plots_all_models_for_glyph_no_outliers(glyph, glyph_types, A, B, C, outdir=IMAGES_OUTPUT_DIR):
+    glyph_mask = (glyph_types == glyph)
+    A_glyph, B_glyph, C_glyph = A[glyph_mask], B[glyph_mask], C[glyph_mask]
+
+    # ===== 1) LINEÁRNÍ MODEL (y = x) =====
+    f_lin = lambda x: x
+    mask_lin_in = mask_for_model(A_glyph, B_glyph, C_glyph, f_lin, outliers_pct=OUTLIERS_PCT)
+    # lineární model se nerefituje, je prostě y = x
+
+    # ===== 2) GAMMA MODEL (robustní fit) =====
+    gamma_fit, mask_gam_in = fit_gamma_no_outliers(A_glyph, B_glyph, C_glyph, outliers_pct=OUTLIERS_PCT)
+    f_gam = lambda x: gamma_function(x, gamma_fit)
+
+    # ===== 3) POLY3C MODEL (robustní fit) =====
+    (b_fit, c_fit), mask_cc_in = fit_poly3c_no_outliers(
+        A_glyph, B_glyph, C_glyph,
+        outliers_pct=OUTLIERS_PCT
+    )
+    f_cc = lambda x: cubic_constrained_function(x, b_fit, c_fit)
+
+    # ===== 4) Vykreslení 3 subplotů vedle sebe =====
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharex=True, sharey=True)
+
+    # Linear — outliery i inliery podle linear modelu
+    beak_plot_for_glyph(
+        f_lin,
+        A_glyph, B_glyph, C_glyph,
+        title=f"Beak — Linear (y=x) — {glyph}",
+        axis=axes[0],
+        mask=mask_lin_in,
+        plot_outliers = False
+    )
+
+    # Gamma — outliery/inliery podle gamma modelu + refit
+    beak_plot_for_glyph(
+        f_gam,
+        A_glyph, B_glyph, C_glyph,
+        title=f"Beak — Gamma (gamma={gamma_fit:.3f}) — {glyph}",
+        axis=axes[1],
+        mask=mask_gam_in,
+        plot_outliers=False
+    )
+
+    # Poly3C — outliery/inliery podle poly3c modelu + refit
+    beak_plot_for_glyph(
+        f_cc,
+        A_glyph, B_glyph, C_glyph,
+        title=f"Beak — Poly3C (b={b_fit:.3f}, c={c_fit:.3f}) — {glyph}",
+        axis=axes[2],
+        mask=mask_cc_in,
+        plot_outliers=False
+    )
+
+    fig.suptitle(f"Beak plots for glyph '{glyph}'", fontsize=16)
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+
+    out_path = os.path.join(outdir, f"no_outlier_beak_plots_{glyph}.png")
+    plt.savefig(out_path, dpi=120, bbox_inches="tight")
+    plt.close(fig)
+    print(f"  [ok] {glyph}: saved no_outlier_beak_plots_{glyph}.png")
+
+
+def robust_metrics_gamma(A, B, C, outliers_pct=OUTLIERS_PCT):
+    # 1) robustní fit (gamma + maska inliers)
+    gamma_final, mask_in = fit_gamma_no_outliers(A, B, C, outliers_pct=outliers_pct)
+
+    # 2) funkce modelu na finálních parametrech
+    f = lambda x: gamma_function(x, gamma_final)
+
+    n = len(A[mask_in])
+
+    # 3) metriky jen na inliers (už bez dalšího outlier trimu → outliers_pct=0)
+    metrics = compute_beak_error_no_outliers(
+        A[mask_in],
+        B[mask_in],
+        C[mask_in],
+        f,
+        outliers_pct=0.0
+    )
+
+    # přidáme parametry do výsledku
+    metrics["gamma"] = gamma_final
+    metrics["n_total"] = len(A)
+    return metrics
+
+
+def robust_metrics_poly3c(A, B, C, outliers_pct=OUTLIERS_PCT):
+    # 1) robustní fit (poly3c + maska inliers)
+    (b_final, c_final), mask_in = fit_poly3c_no_outliers(
+        A, B, C, outliers_pct=outliers_pct
+    )
+
+    # 2) funkce modelu na finálních parametrech
+    f = lambda x: cubic_constrained_function(x, b_final, c_final)
+
+    # 3) metriky jen na inliers
+    metrics = compute_beak_error_no_outliers(
+        A[mask_in],
+        B[mask_in],
+        C[mask_in],
+        f,
+        outliers_pct=0.0
+    )
+
+    metrics["b"] = b_final
+    metrics["c"] = c_final
+    metrics["n_total"] = len(A)
+    return metrics
 
 ###############################################
 # --------------------MAIN---------------------
@@ -532,12 +711,12 @@ def main():
 
 
     if SAVE_INLIER_BEAK_PLOTS:
-        print("\n[run] Beak plots with outliers per glyph (linear/gamma/poly3c)")
+        print("\n[run] Beak plots without outliers per glyph (linear/gamma/poly3c)")
         for g in np.unique(glyph_types):
-            beak_plots_all_models_for_glyph_outliers(g, glyph_types, sizeA, sizeB, sizeC, outdir=IMAGES_OUTPUT_DIR)
+            beak_plots_all_models_for_glyph_no_outliers(g, glyph_types, sizeA, sizeB, sizeC, outdir=IMAGES_OUTPUT_DIR)
 
 
-    if SAVE_RESULTS_CSV:
+    if SAVE_RESULTS_CSV_OUT:
         if not os.path.exists(OUTLIER_OUTPUT_DIR):
             os.makedirs(OUTLIER_OUTPUT_DIR)
         with open(OUTLIER_OUTPUT_FILE_CSV, "w", encoding="utf-8") as f:
@@ -553,6 +732,32 @@ def main():
                 f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_lin['n_points_all']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
                 f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_lin['n_points_all']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
         print(f"[ok] Results saved to {OUTLIER_OUTPUT_FILE_CSV}")
+
+
+    if SAVE_RESULTS_CSV_IN:
+        if not os.path.exists(INLIER_OUTPUT_DIR):
+            os.makedirs(INLIER_OUTPUT_DIR)
+        with open(INLIER_OUTPUT_FILE_CSV, "w", encoding="utf-8") as f:
+            f.write("glyph_type,model,unsigned_euclidean_sum,signed_euclidean_sum,n_points_in,avg_unsigned,avg_signed\n")
+            for g in np.unique(glyph_types):
+                mask_g = (glyph_types == g)
+                A_g = sizeA[mask_g]
+                B_g = sizeB[mask_g]
+                C_g = sizeC[mask_g]
+
+                # LINEÁRNÍ MODEL (y = x) – outliery jen podle linear modelu, bez refitu
+                metrics_lin = compute_beak_error_no_outliers(A_g, B_g, C_g, lambda x: x)
+
+                # GAMMA – robustní outliers + refit
+                metrics_gam = robust_metrics_gamma(A_g, B_g, C_g, outliers_pct=OUTLIERS_PCT)
+
+                # POLY3C – robustní outliers + refit
+                metrics_cc  = robust_metrics_poly3c(A_g, B_g, C_g, outliers_pct=OUTLIERS_PCT)
+
+                f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n']},{metrics_lin['avg_unsigned']:.5f},{metrics_lin['avg_signed']:.5f}\n")
+                f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
+                f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
+        print(f"[ok] Results saved to {INLIER_OUTPUT_FILE_CSV}")
 
 
 if __name__ == "__main__":
