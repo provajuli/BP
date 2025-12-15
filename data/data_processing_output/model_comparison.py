@@ -9,7 +9,7 @@ from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 FILENAME = os.path.join(PATH, 'filtered_inliers/inliers_model_comparison.csv')
-OUTPUT_DIR = os.path.join(PATH, 'err_err_plots/')
+OUTPUT_DIR = os.path.join(PATH, 'err_err_plots')
 
 
 # zpracuju csv soubor s vysledky
@@ -147,7 +147,7 @@ all_glyphs = list({**SIMPLE_GLYPHS, **ADVANCED_GLYPHS}.keys())
 for g in all_glyphs:
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
-    error_error_plot(results, g, g.capitalize(), f"{OUTPUT_DIR}error_error_comparison_{g}.png", global_max)
+    error_error_plot(results, g, g.capitalize(), f"{OUTPUT_DIR}/error_error_comparison_{g}.png", global_max)
 
 areas = compute_area(results)
 

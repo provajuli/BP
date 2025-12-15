@@ -11,13 +11,13 @@ import os
 ####################################################
 PATH = os.path.dirname(os.path.abspath(__file__))
 
-INPUT_FILE = os.path.join(PATH, "input/filtered_results.csv")
-IMAGES_OUTPUT_DIR = os.path.join(PATH, "images")
-OUTLIER_OUTPUT_DIR = os.path.join(PATH, "output/unfiltered_outliers")
-INLIER_OUTPUT_DIR = os.path.join(PATH, "output/filtered_inliers")
+INPUT_FILE = os.path.join(PATH, "data_processing_input/filtered_results.csv")
+IMAGES_OUTPUT_DIR = os.path.join(PATH, "beak_plots")
+OUTLIER_OUTPUT_DIR = os.path.join(PATH, "data_processing_output/unfiltered_outliers")
+INLIER_OUTPUT_DIR = os.path.join(PATH, "data_processing_output/filtered_inliers")
 
-OUTLIER_OUTPUT_FILE_CSV = os.path.join(OUTLIER_OUTPUT_DIR, "out_model_comparison.csv")
-INLIER_OUTPUT_FILE_CSV = os.path.join(INLIER_OUTPUT_DIR, "in_model_comparison.csv")
+OUTLIER_OUTPUT_FILE_CSV = os.path.join(OUTLIER_OUTPUT_DIR, "outliers_model_comparison.csv")
+INLIER_OUTPUT_FILE_CSV = os.path.join(INLIER_OUTPUT_DIR, "inliers_model_comparison.csv")
 
 PLOT_GAMMA = True
 PLOT_CC = True
