@@ -46,6 +46,12 @@ FAKT BIG TODO:
     REFACTOR, je to trosku des guys
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+TODO
+modifikace modelem v experiment. appce -> dojde k linearizaci????
+predelat do webove appky
+transformace err-err plotu - vzdalenost od 0
+refactor data_processing
+
 figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu 
 
 zkoumani glyphu s maximem v bode 50???
