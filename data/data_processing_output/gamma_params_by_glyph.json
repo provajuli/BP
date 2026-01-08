@@ -1,0 +1,52 @@
+{
+  "beer": {
+    "gamma": 0.8465991672447225,
+    "n_total": 79,
+    "n_inliers": 75
+  },
+  "circle": {
+    "gamma": 1.0069776823361793,
+    "n_total": 68,
+    "n_inliers": 64
+  },
+  "circular_progressbar": {
+    "gamma": 0.8118911526534446,
+    "n_total": 80,
+    "n_inliers": 76
+  },
+  "flower": {
+    "gamma": 1.4819431794681122,
+    "n_total": 80,
+    "n_inliers": 76
+  },
+  "line": {
+    "gamma": 0.9418246785388483,
+    "n_total": 69,
+    "n_inliers": 65
+  },
+  "polygon": {
+    "gamma": 1.276683839564627,
+    "n_total": 77,
+    "n_inliers": 73
+  },
+  "square": {
+    "gamma": 0.9070586577705035,
+    "n_total": 60,
+    "n_inliers": 57
+  },
+  "star": {
+    "gamma": 1.3698573156103473,
+    "n_total": 75,
+    "n_inliers": 71
+  },
+  "sun": {
+    "gamma": 0.6728235500891067,
+    "n_total": 78,
+    "n_inliers": 74
+  },
+  "tree_growth": {
+    "gamma": 1.5214946986571976,
+    "n_total": 80,
+    "n_inliers": 76
+  }
+}

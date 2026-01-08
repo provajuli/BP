@@ -4,21 +4,23 @@ from scipy.optimize import least_squares
 import numpy as np
 import csv
 import os
+from scipy.interpolate import PchipInterpolator
 
 
-####################################################
-# --------------------PREPINACE---------------------
-####################################################
 PATH = os.path.dirname(os.path.abspath(__file__))
 
 INPUT_FILE = os.path.join(PATH, "data_processing_input/filtered_results.csv")
-IMAGES_OUTPUT_DIR = os.path.join(PATH, "beak_plots")
+IMAGES_OUTPUT_DIR = os.path.join(PATH, "data_processing_output/beak_plots")
 OUTLIER_OUTPUT_DIR = os.path.join(PATH, "data_processing_output/unfiltered_outliers")
 INLIER_OUTPUT_DIR = os.path.join(PATH, "data_processing_output/filtered_inliers")
 
 OUTLIER_OUTPUT_FILE_CSV = os.path.join(OUTLIER_OUTPUT_DIR, "outliers_model_comparison.csv")
 INLIER_OUTPUT_FILE_CSV = os.path.join(INLIER_OUTPUT_DIR, "inliers_model_comparison.csv")
 
+
+####################################################
+# --------------------PREPINACE---------------------
+####################################################
 PLOT_GAMMA = True
 PLOT_CC = True
 SAVE_OUTLIER_BEAK_PLOTS = True
@@ -30,7 +32,6 @@ SAVE_RESULTS_CSV_IN= True
 
 GLYPH_TYPES = []
 EPS = 1e-9
-
 
 #-------------------------------------------------------------
 def open_data_file(filename = INPUT_FILE):
@@ -120,8 +121,8 @@ def plot_gamma_model(rows, outpath):
 # --------------------POLY3 OMEZENA MODEL FUNKCE---------------------
 #####################################################################
 CC_THETA0 = np.array([1.0, 0.0], dtype=float)     
-CC_LOW    = np.array([0.2, -1.5], dtype=float)
-CC_HIGH   = np.array([1.8,  1.5], dtype=float)
+CC_LOW    = np.array([0.0, -3], dtype=float)
+CC_HIGH   = np.array([1.2,  3], dtype=float)
 
 
 def cubic_constrained_function(x, b_par, c_par):
@@ -129,28 +130,35 @@ def cubic_constrained_function(x, b_par, c_par):
     return b_par*x + c_par*(x**2) + (1.0 - b_par - c_par)*(x**3)
 
 
-def inv_cubic_constrained(y, b_par, c_par):
+def inv_cubic_constrained(y, b_par, c_par, eps=1e-9):
     y = np.atleast_1d(np.asarray(y, float)).ravel()
     out = np.empty_like(y)
-    A = (1.0 - b_par - c_par)   # koef. u x^3
-    B = c_par                   # u x^2
-    C = b_par                   # u x
-    def fval(xx): return b_par*xx + c_par*xx**2 + (1.0-b_par-c_par)*xx**3
+
+    A = (1.0 - b_par - c_par)
+    B = c_par
+    C = b_par
+
+    def fval(xx):
+        return b_par*xx + c_par*xx**2 + (1.0-b_par-c_par)*xx**3
 
     for i, yi in enumerate(y):
+        yi = float(np.clip(yi, 0.0, 1.0))
+
         roots = np.roots([A, B, C, -yi])
-        real = roots[np.isreal(roots)].real
-        real = np.asarray(real, float)
+        real = roots[np.isreal(roots)].real.astype(float)
 
         if real.size == 0:
             xi = 0.0
         else:
-            in01 = real[(real >= -EPS) & (real <= 1.0 + EPS)]
-            if in01.size == 0:
-                xi = in01[np.argmin(np.abs(fval(in01) - yi))]
+            in01 = real[(real >= -eps) & (real <= 1.0 + eps)]
+
+            if in01.size > 0:
+                # kořeny v [0,1] – vyber ten, co nejlíp sedí (většinou stačí první, ale tohle je bezpečné)
+                cand = np.clip(in01, 0.0, 1.0)
+                xi = cand[np.argmin(np.abs(fval(cand) - yi))]
             else:
-                clipped = np.clip(real, 0.0, 1.0)
-                xi = real[np.argmin(np.abs(real - clipped))]
+                # žádný kořen v [0,1] – fallback: vezmi kořen nejblíž intervalu a potom ho ořízni
+                xi = np.clip(real[np.argmin(np.minimum(np.abs(real - 0.0), np.abs(real - 1.0)))], 0.0, 1.0)
 
         out[i] = np.clip(xi, 0.0, 1.0)
 
@@ -239,7 +247,7 @@ def beak_points(A, B, C, function, return_all = False):
 
 # vykresli jakoukoliv funkci podle zadaneho modelu
 def plot_curve(function):
-    x = np.linspace(0, 1, 1000)
+    x = np.linspace(0, 1, 20000)
     y = function(x)
     return x, y
 
@@ -326,7 +334,7 @@ def inliers_mask(distances, outliers_pct = OUTLIERS_PCT):
 def filter_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
 
-    x = np.linspace(0, 1, 1000)
+    x = np.linspace(0, 1, 20000)
     y = function(x)
 
     distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=False)
@@ -341,7 +349,7 @@ def compute_beak_error_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     # beak_x je hodnota B od uzivatele, beak_y je ( f(A) + f(C) ) / 2
     beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
 
-    x = np.linspace(0, 1, 1000)
+    x = np.linspace(0, 1, 20000)
     y = function(x)
 
     unsigned_euclidean_distances = euclidean_distance_from_curve(beak_x, beak_y, x, y, select_signed=False)
@@ -363,7 +371,7 @@ def compute_beak_error_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
 
 def beak_plot_for_glyph(function, A, B, C, title, axis, mask=None, plot_outliers=False):
     # krivka modelu
-    x = np.linspace(0, 1, 1000)
+    x = np.linspace(0, 1, 20000)
     y = function(x)
 
     axis.plot(x, y, lw=2, label="model")
@@ -413,67 +421,6 @@ def beak_plot_for_glyph(function, A, B, C, title, axis, mask=None, plot_outliers
     axis.grid(linestyle='--', alpha=0.3)
 
 
-def beak_plots_all_models_for_glyph_outliers(glyph, glyph_types, A, B, C, outdir=IMAGES_OUTPUT_DIR):
-    glyph_mask = (glyph_types == glyph)
-    A_glyph, B_glyph, C_glyph = A[glyph_mask], B[glyph_mask], C[glyph_mask]
-
-    # ===== 1) LINEÁRNÍ MODEL (y = x) =====
-    f_lin = lambda x: x
-    mask_lin_in = mask_for_model(A_glyph, B_glyph, C_glyph, f_lin, outliers_pct=OUTLIERS_PCT)
-    # lineární model se nerefituje, je prostě y = x
-
-    # ===== 2) GAMMA MODEL (robustní fit) =====
-    gamma_fit, mask_gam_in = fit_gamma_no_outliers(A_glyph, B_glyph, C_glyph, outliers_pct=OUTLIERS_PCT)
-    f_gam = lambda x: gamma_function(x, gamma_fit)
-
-    # ===== 3) POLY3C MODEL (robustní fit) =====
-    (b_fit, c_fit), mask_cc_in = fit_poly3c_no_outliers(
-        A_glyph, B_glyph, C_glyph,
-        outliers_pct=OUTLIERS_PCT
-    )
-    f_cc = lambda x: cubic_constrained_function(x, b_fit, c_fit)
-
-    # ===== 4) Vykreslení 3 subplotů vedle sebe =====
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharex=True, sharey=True)
-
-    # Linear — outliery i inliery podle linear modelu
-    beak_plot_for_glyph(
-        f_lin,
-        A_glyph, B_glyph, C_glyph,
-        title=f"Beak — Linear (y=x) — {glyph}",
-        axis=axes[0],
-        mask=mask_lin_in,
-        plot_outliers = True
-    )
-
-    # Gamma — outliery/inliery podle gamma modelu + refit
-    beak_plot_for_glyph(
-        f_gam,
-        A_glyph, B_glyph, C_glyph,
-        title=f"Beak — Gamma (gamma={gamma_fit:.3f}) — {glyph}",
-        axis=axes[1],
-        mask=mask_gam_in,
-        plot_outliers=True
-    )
-
-    # Poly3C — outliery/inliery podle poly3c modelu + refit
-    beak_plot_for_glyph(
-        f_cc,
-        A_glyph, B_glyph, C_glyph,
-        title=f"Beak — Poly3C (b={b_fit:.3f}, c={c_fit:.3f}) — {glyph}",
-        axis=axes[2],
-        mask=mask_cc_in,
-        plot_outliers=True
-    )
-
-    fig.suptitle(f"Beak plots for glyph '{glyph}'", fontsize=16)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
-
-    plt.savefig(os.path.join(outdir, f"outlier_beak_plots_{glyph}.png"), dpi=120, bbox_inches="tight")
-    plt.close(fig)
-    print(f"  [ok] {glyph}: saved outlier_beak_plots_{glyph}.png")
-
-
 ####################################################
 #                    INLIERS
 ####################################################
@@ -490,7 +437,7 @@ def beak_plots_all_models_for_glyph_outliers(glyph, glyph_types, A, B, C, outdir
 def mask_for_model(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     beak_x, beak_y = beak_points(A, B, C, function, return_all = False)
 
-    x_curve = np.linspace(0, 1, 1000)
+    x_curve = np.linspace(0, 1, 20000)
     y_curve = function(x_curve)
 
     distances = euclidean_distance_from_curve(beak_x, beak_y, x_curve, y_curve, select_signed=False)
@@ -499,26 +446,45 @@ def mask_for_model(A, B, C, function, outliers_pct=OUTLIERS_PCT):
     return mask_inliers
 
 
-def fit_gamma_no_outliers(A, B, C, outliers_pct=OUTLIERS_PCT):
-    gamma_out = fit_gamma(A, B, C)
-    f0 = lambda x: gamma_function(x, gamma_out)
+def fit_gamma_model(A, B, C, outliers_pct=0.0):
+    # 1) vždy nejdřív fit na všech bodech
+    gamma = fit_gamma(A, B, C)
+    f = lambda x: gamma_function(x, gamma)
 
-    mask_inliers = mask_for_model(A, B, C, f0, outliers_pct=outliers_pct)
+    # 2) pokud nechceme outliery → hotovo
+    if outliers_pct <= 0.0:
+        mask = np.ones(len(A), dtype=bool)
+        return gamma, mask
 
-    gamma_in = fit_gamma(A[mask_inliers], B[mask_inliers], C[mask_inliers])
+    # 3) jinak robustní krok
+    mask = mask_for_model(A, B, C, f, outliers_pct)
 
-    return gamma_in, mask_inliers
+    # 4) refit na inlierech
+    gamma = fit_gamma(A[mask], B[mask], C[mask])
+    f = lambda x: gamma_function(x, gamma)
+
+    # 5) finální maska konzistentní s finálním modelem
+    mask = mask_for_model(A, B, C, f, outliers_pct)
+
+    return gamma, mask
 
 
-def fit_poly3c_no_outliers(A, B, C, outliers_pct=OUTLIERS_PCT):
-    b_out, c_out = fit_cubic_constrained(A, B, C)
-    f0 = lambda x: cubic_constrained_function(x, b_out, c_out)
+def fit_poly3c_model(A, B, C, outliers_pct=0.0):
+    b, c = fit_cubic_constrained(A, B, C)
+    f = lambda x: cubic_constrained_function(x, b, c)
 
-    mask_inliers = mask_for_model(A, B, C, f0, outliers_pct=outliers_pct)
+    if outliers_pct <= 0.0:
+        mask = np.ones(len(A), dtype=bool)
+        return (b, c), mask
 
-    b_in, c_in = fit_cubic_constrained(A[mask_inliers], B[mask_inliers], C[mask_inliers])
+    mask = mask_for_model(A, B, C, f, outliers_pct)
 
-    return (b_in, c_in), mask_inliers
+    b, c = fit_cubic_constrained(A[mask], B[mask], C[mask])
+    f = lambda x: cubic_constrained_function(x, b, c)
+
+    mask = mask_for_model(A, B, C, f, outliers_pct)
+
+    return (b, c), mask
 
 
 def compute_beak_error_no_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
@@ -527,7 +493,7 @@ def compute_beak_error_no_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT)
     beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
 
     # Vypočtu křivku modelu
-    x = np.linspace(0, 1, 1000)
+    x = np.linspace(0, 1, 20000)
     y = function(x)
 
     # distances
@@ -554,71 +520,201 @@ def compute_beak_error_no_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT)
     )
 
 
-def beak_plots_all_models_for_glyph_no_outliers(glyph, glyph_types, A, B, C, outdir=IMAGES_OUTPUT_DIR):
-    glyph_mask = (glyph_types == glyph)
-    A_glyph, B_glyph, C_glyph = A[glyph_mask], B[glyph_mask], C[glyph_mask]
+# -------------------- PIECEWISE (monotónní) --------------------
+PIECE_N_KNOTS = 11          # 9/11/15… podle toho jak hladké chceš
+PIECE_INV_GRID = 2000       # hustota pro rychlou inverzi přes searchsorted
 
-    # ===== 1) LINEÁRNÍ MODEL (y = x) =====
+def softplus(z):
+    z = np.asarray(z, float)
+    return np.log1p(np.exp(-np.abs(z))) + np.maximum(z, 0.0)
+
+def piece_unpack_theta(theta, xk):
+    """
+    Parametrizace uzlových hodnot yk tak, aby:
+      y(0)=0, y(1)=1, a yk je monotónní.
+    theta má délku (len(xk)-2) pro vnitřní uzly.
+    """
+    theta = np.asarray(theta, float)
+    d = softplus(theta)          # kladné přírůstky
+    s = np.cumsum(d)
+    s = s / s[-1]                # škálujeme aby poslední = 1
+
+    yk = np.empty_like(xk)
+    yk[0] = 0.0
+    yk[-1] = 1.0
+    yk[1:-1] = s[:len(xk)-2]
+    return yk
+
+def make_piecewise_function(xk, yk):
+    interp = PchipInterpolator(xk, yk, extrapolate=True)
+    def f(x):
+        x = np.asarray(x, float)
+        return np.clip(interp(np.clip(x, 0.0, 1.0)), 0.0, 1.0)
+    return f
+
+def piece_predict_b_midpoint(f, A, C, grid_n=PIECE_INV_GRID):
+    """
+    Predikce B: najdi x, kde f(x)=0.5*(f(A)+f(C)).
+    Inverzi uděláme na husté mřížce přes searchsorted (rychlé a stabilní).
+    """
+    A = np.asarray(A, float)
+    C = np.asarray(C, float)
+    target = 0.5 * (f(A) + f(C))
+
+    xg = np.linspace(0.0, 1.0, grid_n)
+    yg = f(xg)  # monotónní
+
+    idx = np.searchsorted(yg, target, side="left")
+    idx = np.clip(idx, 1, grid_n - 1)
+
+    x0, x1 = xg[idx - 1], xg[idx]
+    y0, y1 = yg[idx - 1], yg[idx]
+
+    t = np.where(np.abs(y1 - y0) > 1e-12, (target - y0) / (y1 - y0), 0.0)
+    return x0 + t * (x1 - x0)
+
+def piece_residuals(theta, xk, A, B, C):
+    yk = piece_unpack_theta(theta, xk)
+    f = make_piecewise_function(xk, yk)
+    B_pred = piece_predict_b_midpoint(f, A, C)
+    return B_pred - B
+
+def fit_piecewise(A, B, C, n_knots=PIECE_N_KNOTS):
+    xk = np.linspace(0.0, 1.0, n_knots)
+    theta0 = np.zeros(n_knots - 2, float)  # init ~ lineární
+
+    res = least_squares(piece_residuals, x0=theta0, args=(xk, A, B, C), max_nfev=6000)
+    theta = res.x
+
+    yk = piece_unpack_theta(theta, xk)
+    f = make_piecewise_function(xk, yk)
+    return xk, yk, f
+
+def fit_piecewise_model(A, B, C, outliers_pct=0.0, n_knots=PIECE_N_KNOTS):
+    # 1) fit na všech bodech
+    xk, yk, f = fit_piecewise(A, B, C, n_knots=n_knots)
+
+    if outliers_pct <= 0.0:
+        mask = np.ones(len(A), dtype=bool)
+        return (xk, yk), f, mask
+
+    # 2) outlier maska podle vzdálenosti od křivky
+    mask = mask_for_model(A, B, C, f, outliers_pct)
+
+    # 3) refit na inlierech
+    xk, yk, f = fit_piecewise(A[mask], B[mask], C[mask], n_knots=n_knots)
+
+    # 4) finální maska konzistentní s finálním modelem
+    mask = mask_for_model(A, B, C, f, outliers_pct)
+
+    return (xk, yk), f, mask
+
+
+def beak_plot_models_for_glyph(
+    glyph,
+    glyph_types,
+    A, B, C,
+    outliers_pct=0.0,
+    plot_outliers=False,
+    outdir=IMAGES_OUTPUT_DIR
+):
+    m = glyph_types == glyph
+    A_g, B_g, C_g = A[m], B[m], C[m]
+
+    # LINEAR
     f_lin = lambda x: x
-    mask_lin_in = mask_for_model(A_glyph, B_glyph, C_glyph, f_lin, outliers_pct=OUTLIERS_PCT)
-    # lineární model se nerefituje, je prostě y = x
+    mask_lin = np.ones(len(A_g), bool) if outliers_pct <= 0 else \
+               mask_for_model(A_g, B_g, C_g, f_lin, outliers_pct)
 
-    # ===== 2) GAMMA MODEL (robustní fit) =====
-    gamma_fit, mask_gam_in = fit_gamma_no_outliers(A_glyph, B_glyph, C_glyph, outliers_pct=OUTLIERS_PCT)
-    f_gam = lambda x: gamma_function(x, gamma_fit)
+    # GAMMA
+    gamma, mask_gam = fit_gamma_model(A_g, B_g, C_g, outliers_pct)
+    f_gam = lambda x: gamma_function(x, gamma)
 
-    # ===== 3) POLY3C MODEL (robustní fit) =====
-    (b_fit, c_fit), mask_cc_in = fit_poly3c_no_outliers(
-        A_glyph, B_glyph, C_glyph,
-        outliers_pct=OUTLIERS_PCT
-    )
-    f_cc = lambda x: cubic_constrained_function(x, b_fit, c_fit)
+    # POLY3C
+    (b, c), mask_cc = fit_poly3c_model(A_g, B_g, C_g, outliers_pct)
+    f_cc = lambda x: cubic_constrained_function(x, b, c)
 
-    # ===== 4) Vykreslení 3 subplotů vedle sebe =====
-    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharex=True, sharey=True)
+    # PIECEWISE
+    (xk, yk), f_pw, mask_pw = fit_piecewise_model(A_g, B_g, C_g, outliers_pct=outliers_pct, n_knots=PIECE_N_KNOTS)
 
-    # Linear — outliery i inliery podle linear modelu
-    beak_plot_for_glyph(
-        f_lin,
-        A_glyph, B_glyph, C_glyph,
-        title=f"Beak — Linear (y=x) — {glyph}",
-        axis=axes[0],
-        mask=mask_lin_in,
-        plot_outliers = False
-    )
+    fig, axes = plt.subplots(1, 4, figsize=(24, 6), sharex=True, sharey=True)
 
-    # Gamma — outliery/inliery podle gamma modelu + refit
-    beak_plot_for_glyph(
-        f_gam,
-        A_glyph, B_glyph, C_glyph,
-        title=f"Beak — Gamma (gamma={gamma_fit:.3f}) — {glyph}",
-        axis=axes[1],
-        mask=mask_gam_in,
-        plot_outliers=False
-    )
+    beak_plot_for_glyph(f_lin, A_g, B_g, C_g,
+        title=f"Linear — {glyph}",
+        axis=axes[0], mask=mask_lin, plot_outliers=plot_outliers)
 
-    # Poly3C — outliery/inliery podle poly3c modelu + refit
-    beak_plot_for_glyph(
-        f_cc,
-        A_glyph, B_glyph, C_glyph,
-        title=f"Beak — Poly3C (b={b_fit:.3f}, c={c_fit:.3f}) — {glyph}",
-        axis=axes[2],
-        mask=mask_cc_in,
-        plot_outliers=False
-    )
+    beak_plot_for_glyph(f_gam, A_g, B_g, C_g,
+        title=f"Gamma γ={gamma:.3f}, inliers={mask_gam.sum()}/{len(mask_gam)}",
+        axis=axes[1], mask=mask_gam, plot_outliers=plot_outliers)
 
-    fig.suptitle(f"Beak plots for glyph '{glyph}'", fontsize=16)
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    beak_plot_for_glyph(f_cc, A_g, B_g, C_g,
+        title=f"Poly3C b={b:.3f}, c={c:.3f}, inliers={mask_cc.sum()}/{len(mask_cc)}",
+        axis=axes[2], mask=mask_cc, plot_outliers=plot_outliers)
 
-    out_path = os.path.join(outdir, f"no_outlier_beak_plots_{glyph}.png")
-    plt.savefig(out_path, dpi=120, bbox_inches="tight")
-    plt.close(fig)
-    print(f"  [ok] {glyph}: saved no_outlier_beak_plots_{glyph}.png")
+    beak_plot_for_glyph(f_pw, A_g, B_g, C_g,
+        title=f"Piecewise K={len(xk)}, inliers={mask_pw.sum()}/{len(mask_pw)}",
+        axis=axes[3], mask=mask_pw, plot_outliers=plot_outliers)
+
+    plt.tight_layout()
+    fname = "with_outliers" if plot_outliers else "no_outliers"
+    plt.savefig(os.path.join(outdir, f"beak_{fname}_{glyph}.png"), dpi=120)
+    plt.close()
+
+
+def beak_plot_models_for_glyph(
+    glyph,
+    glyph_types,
+    A, B, C,
+    outliers_pct=0.0,
+    plot_outliers=False,
+    outdir=IMAGES_OUTPUT_DIR
+):
+    m = glyph_types == glyph
+    A_g, B_g, C_g = A[m], B[m], C[m]
+
+    # LINEAR
+    f_lin = lambda x: x
+    mask_lin = np.ones(len(A_g), bool) if outliers_pct <= 0 else \
+               mask_for_model(A_g, B_g, C_g, f_lin, outliers_pct)
+
+    # GAMMA
+    gamma, mask_gam = fit_gamma_model(A_g, B_g, C_g, outliers_pct)
+    f_gam = lambda x: gamma_function(x, gamma)
+
+    # POLY3C
+    (b, c), mask_cc = fit_poly3c_model(A_g, B_g, C_g, outliers_pct)
+    f_cc = lambda x: cubic_constrained_function(x, b, c)
+
+    # PIECEWISE
+    (xk, yk), f_pw, mask_pw = fit_piecewise_model(A_g, B_g, C_g, outliers_pct=outliers_pct, n_knots=PIECE_N_KNOTS)
+
+    fig, axes = plt.subplots(1, 4, figsize=(24, 6), sharex=True, sharey=True)
+
+    beak_plot_for_glyph(f_lin, A_g, B_g, C_g,
+        title=f"Linear — {glyph}",
+        axis=axes[0], mask=mask_lin, plot_outliers=plot_outliers)
+
+    beak_plot_for_glyph(f_gam, A_g, B_g, C_g,
+        title=f"Gamma γ={gamma:.3f}, inliers={mask_gam.sum()}/{len(mask_gam)}",
+        axis=axes[1], mask=mask_gam, plot_outliers=plot_outliers)
+
+    beak_plot_for_glyph(f_cc, A_g, B_g, C_g,
+        title=f"Poly3C b={b:.3f}, c={c:.3f}, inliers={mask_cc.sum()}/{len(mask_cc)}",
+        axis=axes[2], mask=mask_cc, plot_outliers=plot_outliers)
+
+    beak_plot_for_glyph(f_pw, A_g, B_g, C_g,
+        title=f"Piecewise K={len(xk)}, inliers={mask_pw.sum()}/{len(mask_pw)}",
+        axis=axes[3], mask=mask_pw, plot_outliers=plot_outliers)
+
+    plt.tight_layout()
+    fname = "with_outliers" if plot_outliers else "no_outliers"
+    plt.savefig(os.path.join(outdir, f"beak_{fname}_{glyph}.png"), dpi=120)
+    plt.close()
 
 
 def robust_metrics_gamma(A, B, C, outliers_pct=OUTLIERS_PCT):
     # 1) robustní fit (gamma + maska inliers)
-    gamma_final, mask_in = fit_gamma_no_outliers(A, B, C, outliers_pct=outliers_pct)
+    gamma_final, mask_in = fit_gamma_model(A, B, C, outliers_pct=outliers_pct)
 
     # 2) funkce modelu na finálních parametrech
     f = lambda x: gamma_function(x, gamma_final)
@@ -642,7 +738,7 @@ def robust_metrics_gamma(A, B, C, outliers_pct=OUTLIERS_PCT):
 
 def robust_metrics_poly3c(A, B, C, outliers_pct=OUTLIERS_PCT):
     # 1) robustní fit (poly3c + maska inliers)
-    (b_final, c_final), mask_in = fit_poly3c_no_outliers(
+    (b_final, c_final), mask_in = fit_poly3c_model(
         A, B, C, outliers_pct=outliers_pct
     )
 
@@ -662,6 +758,20 @@ def robust_metrics_poly3c(A, B, C, outliers_pct=OUTLIERS_PCT):
     metrics["c"] = c_final
     metrics["n_total"] = len(A)
     return metrics
+
+
+def robust_metrics_piecewise(A, B, C, outliers_pct=OUTLIERS_PCT):
+    (xk, yk), f, mask_in = fit_piecewise_model(A, B, C, outliers_pct=outliers_pct, n_knots=PIECE_N_KNOTS)
+
+    metrics = compute_beak_error_no_outliers(
+        A[mask_in], B[mask_in], C[mask_in],
+        f, outliers_pct=0.0
+    )
+
+    metrics["n_total"] = len(A)
+    metrics["n_knots"] = len(xk)
+    return metrics
+
 
 ###############################################
 # --------------------MAIN---------------------
@@ -707,13 +817,13 @@ def main():
     if SAVE_OUTLIER_BEAK_PLOTS:
         print("\n[run] Beak plots with outliers per glyph (linear/gamma/poly3c)")
         for g in np.unique(glyph_types):
-            beak_plots_all_models_for_glyph_outliers(g, glyph_types, sizeA, sizeB, sizeC, outdir=IMAGES_OUTPUT_DIR)
+            beak_plot_models_for_glyph(g, glyph_types, sizeA, sizeB, sizeC, outliers_pct=0.0, plot_outliers=True, outdir=IMAGES_OUTPUT_DIR)
 
 
     if SAVE_INLIER_BEAK_PLOTS:
         print("\n[run] Beak plots without outliers per glyph (linear/gamma/poly3c)")
         for g in np.unique(glyph_types):
-            beak_plots_all_models_for_glyph_no_outliers(g, glyph_types, sizeA, sizeB, sizeC, outdir=IMAGES_OUTPUT_DIR)
+            beak_plot_models_for_glyph(g, glyph_types, sizeA, sizeB, sizeC, outliers_pct=OUTLIERS_PCT, plot_outliers=False, outdir=IMAGES_OUTPUT_DIR)
 
 
     if SAVE_RESULTS_CSV_OUT:
@@ -731,6 +841,11 @@ def main():
                 f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n_points_all']},{metrics_lin['avg_unsigned']:.5f},{metrics_lin['avg_signed']:.5f}\n")
                 f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_lin['n_points_all']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
                 f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_lin['n_points_all']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
+                (xk, yk), f_pw, _ = fit_piecewise_model(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g],
+                                        outliers_pct=0.0, n_knots=PIECE_N_KNOTS)
+                metrics_pw = compute_beak_error_outliers(sizeA[glyph_types==g], sizeB[glyph_types==g], sizeC[glyph_types==g], f_pw)
+                f.write(f"{g},piecewise,{metrics_pw['unsigned_euclidean_sum']:.3f},{metrics_pw['signed_euclidean_sum']:.3f},{metrics_pw['n_points_all']},{metrics_pw['avg_unsigned']:.5f},{metrics_pw['avg_signed']:.5f}\n")
+
         print(f"[ok] Results saved to {OUTLIER_OUTPUT_FILE_CSV}")
 
 
@@ -754,9 +869,12 @@ def main():
                 # POLY3C – robustní outliers + refit
                 metrics_cc  = robust_metrics_poly3c(A_g, B_g, C_g, outliers_pct=OUTLIERS_PCT)
 
+                metrics_pw = robust_metrics_piecewise(A_g, B_g, C_g, outliers_pct=OUTLIERS_PCT)
+
                 f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n']},{metrics_lin['avg_unsigned']:.5f},{metrics_lin['avg_signed']:.5f}\n")
                 f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
                 f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
+                f.write(f"{g},piecewise,{metrics_pw['unsigned_euclidean_sum']:.3f},{metrics_pw['signed_euclidean_sum']:.3f},{metrics_pw['n']},{metrics_pw['avg_unsigned']:.5f},{metrics_pw['avg_signed']:.5f}\n")
         print(f"[ok] Results saved to {INLIER_OUTPUT_FILE_CSV}")
 
 

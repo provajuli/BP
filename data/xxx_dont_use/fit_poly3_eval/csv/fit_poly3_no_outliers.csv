@@ -1,0 +1,4 @@
+glyph_type,model,unsigned_sum,signed_sum,n_used,avg_unsigned,avg_signed,param_gamma,param_b,param_c
+star,linear,1.934949,-0.597515,76,0.025460,-0.007862,nan,nan,nan
+star,gamma,1.655912,0.391861,76,0.021788,0.005156,1.4537229658684674,nan,nan
+star,poly3c,1.649063,0.035447,76,0.021698,0.000466,nan,0.059967512642113203,2.7186933329264353

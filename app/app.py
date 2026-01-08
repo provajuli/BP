@@ -4,6 +4,7 @@ import mglyph as mg
 import os, random
 from PyQt5 import QtCore, QtGui, QtWidgets
 from io import BytesIO
+import json
 
 from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
@@ -11,9 +12,39 @@ SEED = None
 random.seed(SEED)
 N = 20 # pocet opakovani kazdeho glyphu
 
+PATH = os.path.dirname(os.path.abspath(""))
+print(PATH)
+
+EXPERIMENTAL_OUTPUT_DIR = os.path.join(PATH, "data/user_data_sets/")
+FIT_POLY3_OUTPUT_DIR = os.path.join(PATH, "data/user_data_sets/fit_poly3/")
+
+EXPERIMENTAL_MODE = True
+FIT_TO_POLY3_MODE = False
+
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
-USE_ADVANCED = True 
+USE_ADVANCED = False 
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
+
+POLY3C_JSON = os.path.join(PATH, "data/data_processing_output/poly3c_params_by_glyph.json")
+
+with open(POLY3C_JSON, "r", encoding="utf-8") as f:
+    POLY3C_PARAMS = json.load(f)
+
+def poly3c_f(x01, b, c):
+    return b*x01 + c*(x01**2) + (1.0 - b - c)*(x01**3)
+
+def poly3c_inv_bisect(p, b, c, iters=40):
+    # p i výstup jsou v [0,1]
+    p = max(0.0, min(1.0, float(p)))
+    lo, hi = 0.0, 1.0
+    for _ in range(iters):
+        mid = 0.5 * (lo + hi)
+        if poly3c_f(mid, b, c) < p:
+            lo = mid
+        else:
+            hi = mid
+    return 0.5 * (lo + hi)
+
 
 def render_png(glyph_type: str, x: float) -> bytes:
     result = mg.render(glyphs[glyph_type], (96, 96), [x])
@@ -22,7 +53,7 @@ def render_png(glyph_type: str, x: float) -> bytes:
     pil_img.save(buf, format="PNG")
     return buf.getvalue()
 
-# TODO: improve generating
+# TODO: improve generating - DONE
 # Generuj nahodne cislo x s uniformnim rozlozenim v rozmezi 10-50, to bude rozestup mezi A a C
 # Generuj nahodne cislo 1 - 100-x, tam umisti A, C se umisti na A+x
 # z = rand.int(0, 1) if z < 0.5 then A, C = C, A 
@@ -142,7 +173,7 @@ class MainWindow(QtWidgets.QWidget):
 
         self.update_counter_label()
 
-    def save_results(self, filename="data/data_sets/results.csv"):
+    def save_results(self, filename= EXPERIMENTAL_OUTPUT_DIR + "results.csv"):
         with open(filename, "w", newline="") as csvfile:
             fieldnames = ["index", "glyph_type", "sizeA", "sizeB", "sizeC"]
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
@@ -176,6 +207,12 @@ class GlyphWidget(QtWidgets.QWidget):
     def set_type(self, glyph_type: str):
         if glyph_type in glyphs:
             self.glyph_type = glyph_type
+
+            if FIT_TO_POLY3_MODE:
+                bc = POLY3C_PARAMS.get(glyph_type)
+                
+                self.poly_b, self.poly_c = bc["b"], bc["c"]
+
             self.update_image()
         else:
             raise ValueError(f"Unknown glyph type: {glyph_type}")
@@ -187,11 +224,35 @@ class GlyphWidget(QtWidgets.QWidget):
         self.image_label.setPixmap(pixmap)
 
     def wheelEvent(self, event):
-        if self.editable:
+        if not self.editable:
+            return
+        
+        if EXPERIMENTAL_MODE:
             step = 1
             delta = step if event.angleDelta().y() > 0 else -step
             self.set_value(min(100, max(0, self.value + delta)))
+            #print(f"{self.value}")
             self.update_image()
+        
+        if FIT_TO_POLY3_MODE:
+            #print("poly3")
+            sign = 1 if event.angleDelta().y() > 0 else -1
+
+            x0 = self.value / 100.0
+
+            p = poly3c_f(x0, self.poly_b, self.poly_c)
+
+            #print(self.poly_b, self.poly_c)
+
+            dp = 0.01
+            p_new = p + sign * dp
+
+            x0_new = poly3c_inv_bisect(p_new, self.poly_b, self.poly_c)
+
+            self.set_value(x0_new * 100)
+            #print(f"{self.value:.2f}")
+            self.update_image()
+            
 
 app = QtWidgets.QApplication(sys.argv)
 window = MainWindow()

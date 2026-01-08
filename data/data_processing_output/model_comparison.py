@@ -4,6 +4,10 @@ import sys
 import matplotlib.pyplot as plt
 import numpy as np
 
+# ERR ERR plots
+
+# !!! V BP nutno zminit v jake metrice model selhava !!!
+
 sys.path.insert(0, '/home/jp/a_school/BP')
 from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
@@ -21,10 +25,12 @@ def open_file(filename = FILENAME):
             results.append(row)
     return results
 
+
 COLORS = {
     "linear": "blue",
     "gamma": "green",
     "poly3c": "red",
+    "piecewise": "orange"
 }
 
 
@@ -37,9 +43,6 @@ def compute_global_max(results):
     return global_max
 
 
-# v jednom plotu budou simple nebo advanced glyphs
-# glyphy budou odlisene barvou 
-# modely budou odlisene tvarem scatter points
 def error_error_plot(results, glyph, title, output, global_max):
     fig, ax = plt.subplots(figsize=(8, 6))
 
@@ -58,7 +61,12 @@ def error_error_plot(results, glyph, title, output, global_max):
                     avg_unsigned_mult,
                     avg_signed_mult,
                     color=COLORS[model],
-                    label=f"{model.capitalize()} Model (S={area_txt})",
+                    label=(
+                        f"{model.capitalize()} "
+                        f"(S={area_txt}, "
+                        f"u={avg_unsigned_mult:.2f}, "
+                        f"s={avg_signed_mult:.2f})"
+                    ),
                     alpha=0.6,
                     s=48
                 )
@@ -70,26 +78,21 @@ def error_error_plot(results, glyph, title, output, global_max):
     ax.spines["top"].set_color("none")
 
     # popisky os
-    ax.set_xlabel("Unsigned Euclidean Error Average per Point")
-    ax.set_ylabel("Absolute Signed Euclidean Error Average per Point")
-    ax.xaxis.set_label_coords(0.6, -0.08)
-    ax.yaxis.set_label_coords(0, 0.6)
+    ax.set_xlabel("Unsigned average distance from curve/beak_point")
+    ax.set_ylabel("Signed average absolute distance from curve/beak_point")
 
     # ticks
     ax.tick_params(axis="both", which="major", pad=6)
 
     # limity
-    ax.set_xlim(-0.5, global_max + 0.5)
-    ax.set_ylim(-0.5, global_max + 0.5)
+    ax.set_xlim(0, global_max + 0.5)
+    ax.set_ylim(0, global_max + 0.5)
     ax.set_aspect("equal", adjustable="box")
-
-    ax.get_xticklabels()[0].set_visible(False)
-    ax.get_yticklabels()[0].set_visible(False)
 
     ax.grid(True, linestyle="--", alpha=0.2)
 
     # titulek + legenda
-    ax.set_title(f"Error Comparison for {title} Glyph")
+    ax.set_title(f"Error for {title} Glyph")
 
     # --- vrstevnice konstantního obsahu A = x*y ---
     xmin, xmax = ax.get_xlim()
@@ -147,10 +150,10 @@ all_glyphs = list({**SIMPLE_GLYPHS, **ADVANCED_GLYPHS}.keys())
 for g in all_glyphs:
     if not os.path.exists(OUTPUT_DIR):
         os.makedirs(OUTPUT_DIR)
-    error_error_plot(results, g, g.capitalize(), f"{OUTPUT_DIR}/error_error_comparison_{g}.png", global_max)
+    error_error_plot(results, g, g.capitalize(), f"{OUTPUT_DIR}/error_error_{g}.png", global_max)
 
 areas = compute_area(results)
 
 for glyph, model_values in areas.items():
     for model, area in model_values.items():
-        print(glyph, model, area)
+        print(glyph, model, f"{area:.2f}")

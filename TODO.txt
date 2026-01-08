@@ -47,14 +47,26 @@ FAKT BIG TODO:
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 TODO
-modifikace modelem v experiment. appce -> dojde k linearizaci????
+transformace modelem v experiment. appce -> dojde k linearizaci????
 predelat do webove appky
-transformace err-err plotu - vzdalenost od 0
-refactor data_processing
+transformace err-err plotu - vzdalenost od 0 - DONE
+refactor data_processing DONE
 
-figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu 
 
-zkoumani glyphu s maximem v bode 50???
+!!!!!!!!!!!!!!!!! BIG TODOS !!!!!!!!!!!!!!!!!!!!!!!!!
+    - upravit generujici alg.
+    - Vue appka
+    - transformace glyphu - gammaizace
+    - candle glyphik DONE
+    - render glyphiky DONE
+    - linearizace? - tree growth gamma, sun poly3c
+    - vylepsit splines
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu, asi ne
+
+zkoumani glyphu s maximem v bode X (X != 100)
 
 POTOM, kdyz bude cas:
 (aspon trochu) optimalizace - cerpej z IZV
