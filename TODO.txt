@@ -54,13 +54,17 @@ refactor data_processing DONE
 
 
 !!!!!!!!!!!!!!!!! BIG TODOS !!!!!!!!!!!!!!!!!!!!!!!!!
-    - upravit generujici alg.
-    - Vue appka
-    - transformace glyphu - gammaizace
+    - upravit generujici alg. DONE 
+        - todo min rozdil 10...? nechat na <10 nebo dat pevne min 10
+    - raw web appka DONE
+    - upravit webovku (text, napovedy, nazev BP)
+    - nasadit webovku
     - candle glyphik DONE
     - render glyphiky DONE
     - linearizace? - tree growth gamma, sun poly3c
     - vylepsit splines
+    - zalozit overleaf
+    - pridat metriky - vyvazenost se stredem, vzdalenost od stredu
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
