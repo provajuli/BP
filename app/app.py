@@ -25,10 +25,10 @@ FIT_TO_POLY3_MODE = False
 USE_ADVANCED = False 
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
 
-POLY3C_JSON = os.path.join(PATH, "data/data_processing_output/poly3c_params_by_glyph.json")
+#POLY3C_JSON = os.path.join(PATH, "data/data_processing_output/poly3c_params_by_glyph.json")
 
-with open(POLY3C_JSON, "r", encoding="utf-8") as f:
-    POLY3C_PARAMS = json.load(f)
+#with open(POLY3C_JSON, "r", encoding="utf-8") as f:
+    #POLY3C_PARAMS = json.load(f)
 
 def poly3c_f(x01, b, c):
     return b*x01 + c*(x01**2) + (1.0 - b - c)*(x01**3)
@@ -53,6 +53,53 @@ def render_png(glyph_type: str, x: float) -> bytes:
     pil_img.save(buf, format="PNG")
     return buf.getvalue()
 
+def make_balanced_bin_order(n: int, n_bins: int = 3):
+    """Return list of bin indices (0..n_bins-1) with (almost) equal counts, shuffled."""
+    base = n // n_bins
+    rem = n % n_bins
+    bins = []
+    for i in range(n_bins):
+        count = base + (1 if i < rem else 0)
+        bins.extend([i] * count)
+    random.shuffle(bins)
+    return bins
+
+def generate_pair_for_bin(bin_low: int, bin_high: int, x_min: int = 10, x_max: int = 50):
+    """
+    Generate (a, c) in [0,100] such that:
+    - anchor is uniform in [bin_low, bin_high]
+    - anchor becomes min or max of the pair with 50/50 probability
+    - |a - c| in [x_min, x_max] when possible, otherwise shrinks lower bound near edges
+    Returns (a, c) or None if impossible.
+    """
+    anchor_is_min = (random.random() < 0.5)
+    anchor = random.randint(bin_low, bin_high)
+
+    # allowed max difference so the other point stays within [0,100]
+    if anchor_is_min:
+        max_x_allowed = min(x_max, 100 - anchor)
+    else:
+        max_x_allowed = min(x_max, anchor - 1)
+
+    if max_x_allowed < 1:
+        return None
+
+    # if we're near the edge, allow smaller x (but never below 1)
+    min_x_allowed = min(x_min, max_x_allowed)
+    min_x_allowed = max(1, min_x_allowed)
+
+    x = random.randint(min_x_allowed, max_x_allowed)
+    other = anchor + x if anchor_is_min else anchor - x
+
+    a = anchor if anchor_is_min else other
+    c = other if anchor_is_min else anchor
+
+    # random swap so A isn't systematically smaller/larger
+    if random.random() < 0.5:
+        a, c = c, a
+
+    return a, c
+
 # TODO: improve generating - DONE
 # Generuj nahodne cislo x s uniformnim rozlozenim v rozmezi 10-50, to bude rozestup mezi A a C
 # Generuj nahodne cislo 1 - 100-x, tam umisti A, C se umisti na A+x
@@ -70,26 +117,32 @@ class MainWindow(QtWidgets.QWidget):
             self.glyph_order.extend([glyph_type] * N)
         random.shuffle(self.glyph_order)
 
-        BINS = [(0, 33), (34, 66), (67, 100)]
+        BINS = [(1, 33), (34, 66), (67, 100)]
+        X_MIN, X_MAX = 10, 50
+
+        n_trials = len(self.glyph_order)
+        bin_order = make_balanced_bin_order(n_trials, n_bins=len(BINS))
 
         self.trials = []
-        for glyph_type in self.glyph_order:
-            while True:
-                x = random.randint(10, 50)
-                idx = random.randint(0, 2)
-                bin_low, bin_high = BINS[idx]
+        for i, glyph_type in enumerate(self.glyph_order):
+            bin_idx = bin_order[i]
+            bin_low, bin_high = BINS[bin_idx]
 
-                c_low = max(bin_low, x + 1)
-                c_high = min(bin_high, 100)
-
-                if c_low <= c_high:
-                    c = random.randint(c_low, c_high)
-                    a = c - x
+            pair = None
+            for _ in range(50):  # few retries for robustness
+                pair = generate_pair_for_bin(bin_low, bin_high, x_min=X_MIN, x_max=X_MAX)
+                if pair is not None:
                     break
 
-            if random.random() < 0.5:
-                a, c = c, a
+            if pair is None:
+                # extremely rare fallback
+                a = random.randint(1, 100)
+                c = random.randint(1, 100)
+                if c == a:
+                    c = min(100, a + 1)
+                pair = (a, c)
 
+            a, c = pair
             self.trials.append((glyph_type, a, c))
             
         # _____________GUI setup______________________
@@ -201,17 +254,17 @@ class GlyphWidget(QtWidgets.QWidget):
         self.update_image()
 
     def set_value(self, value: float):
-        self.value = max(0, min(100, value))
+        self.value = max(1, min(100, value))
         self.update_image()
 
     def set_type(self, glyph_type: str):
         if glyph_type in glyphs:
             self.glyph_type = glyph_type
 
-            if FIT_TO_POLY3_MODE:
-                bc = POLY3C_PARAMS.get(glyph_type)
+            #if FIT_TO_POLY3_MODE:
+                #bc = POLY3C_PARAMS.get(glyph_type)
                 
-                self.poly_b, self.poly_c = bc["b"], bc["c"]
+                #self.poly_b, self.poly_c = bc["b"], bc["c"]
 
             self.update_image()
         else:
@@ -230,7 +283,7 @@ class GlyphWidget(QtWidgets.QWidget):
         if EXPERIMENTAL_MODE:
             step = 1
             delta = step if event.angleDelta().y() > 0 else -step
-            self.set_value(min(100, max(0, self.value + delta)))
+            self.set_value(min(100, max(1, self.value + delta)))
             #print(f"{self.value}")
             self.update_image()
         
