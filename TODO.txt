@@ -57,11 +57,11 @@ refactor data_processing DONE
     - upravit generujici alg. DONE 
         - todo min rozdil 10...? nechat na <10 nebo dat pevne min 10
     - raw web appka DONE
-    - upravit webovku (text, napovedy, nazev BP)
-    - nasadit webovku
+    - upravit webovku (text, napovedy, nazev BP) DONE
+    - nasadit webovku TODO 11.1.
     - candle glyphik DONE
     - render glyphiky DONE
-    - linearizace? - tree growth gamma, sun poly3c
+    - linearizace? - tree growth gamma, sun poly3c TODO 11.1.
     - vylepsit splines
     - zalozit overleaf
     - pridat metriky - vyvazenost se stredem, vzdalenost od stredu

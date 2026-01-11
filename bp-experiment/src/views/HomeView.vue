@@ -26,7 +26,7 @@
     <h2>Časová náročnost</h2>
     <p>
       Délka experimentu není pevně stanovena a závisí na každém, kolik času mu věnuje.
-      Experiment lze kdykoliv ukončit a jakýkoliv počet dokončených úloh je pro mě přínosný.
+      Experiment lze kdykoliv ukončit a jakýkoliv počet dokončených úloh je pro výzkum přínosný.
     </p>
 
     <h2>Anonymita a data</h2>
