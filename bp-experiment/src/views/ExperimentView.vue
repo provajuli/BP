@@ -164,6 +164,13 @@ function generateTrials() {
   return out;
 }
 
+function getCookie(name) {
+  const m = document.cookie.match(new RegExp("(^| )" + name + "=([^;]+)"));
+  return m ? decodeURIComponent(m[2]) : null;
+}
+
+const dpi = ref(96);
+
 // --------------- Computed ---------------
 const totalTrials = computed(() => trials.value.length);
 const current = computed(() => trials.value[trialIndex.value] || null);
@@ -191,6 +198,10 @@ onMounted(() => {
     prefetch(current.value.glyphType, current.value.sizeC);
     prefetchWindow(current.value.glyphType, sizeB.value);
   }
+
+  const saved = Number(getCookie("dpi"));
+  dpi.value = (Number.isFinite(saved) && saved > 30 && saved < 2000) ? Math.round(saved) : 96;
+  document.documentElement.style.setProperty("--glyph-size", `${dpi.value}px`);
 });
 
 // --------------- UI Actions ---------------
@@ -256,16 +267,6 @@ function onExit() {
 
         <div class="meta">
         <div><strong>Session:</strong> <code>{{ sessionId }}</code></div>
-
-        <label class="gender">
-            <span><strong>Pohlaví</strong> (volitelné):</span>
-            <select v-model="gender">
-            <option value="no_answer">Nechci uvést</option>
-            <option value="female">Žena</option>
-            <option value="male">Muž</option>
-            <option value="other">Jiné</option>
-            </select>
-        </label>
         </div>
 
         <div v-if="done" class="done">
@@ -279,6 +280,11 @@ function onExit() {
         </div>
 
         <template v-else>
+        <p v-if="dpi === 96" class="warn">
+          Pro přesnou fyzickou velikost glyphů (1x1 inch) doporučuji provést
+          <RouterLink to="/calibration">kalibraci monitoru</RouterLink>.
+        </p>
+        
         <div class="counter">{{ counterText }}</div>
 
         <div v-if="current" class="row">
@@ -332,16 +338,6 @@ function onExit() {
     border-radius: 12px;
     margin-bottom: 14px;
 }
-.gender {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-.gender select {
-    padding: 6px 8px;
-    border-radius: 10px;
-    border: 1px solid #ccc;
-}
 
 .counter {
     text-align: center;
@@ -370,8 +366,8 @@ function onExit() {
 }
 
 .glyph {
-    width: 1in;
-    height: 1in;
+    width: var(--glyph-size, 96px);
+    height: var(--glyph-size, 96px);
     border: 1px solid #ddd;
     border-radius: 14px;
     background: #fff;
@@ -429,5 +425,15 @@ code {
     background: #f3f3f3;
     padding: 2px 6px;
     border-radius: 8px;
+}
+
+.warn{
+  text-align:center;
+  background:#fff8db;
+  border:1px solid #f2c200;
+  padding:10px 12px;
+  border-radius:12px;
+  margin: 10px auto 12px;
+  max-width: 680px;
 }
 </style>

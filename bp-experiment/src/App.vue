@@ -2,7 +2,7 @@
   <div class="page">
     <header class="header">
       <div class="brand">
-        <div class="title">Bakalářská práce – Experiment</div>
+        <div class="title">Bakalářská práce - Experiment</div>
         <div class="subtitle">FIT VUT</div>
       </div>
 
@@ -17,7 +17,7 @@
     </main>
 
     <footer class="footer">
-      <small>© {{ new Date().getFullYear() }} • FIT VUT</small>
+      <small>© {{ new Date().getFullYear() }} • FIT VUT • xprova06@stud.fit.vut.cz </small>
     </footer>
   </div>
 </template>
