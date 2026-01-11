@@ -95,7 +95,7 @@ li {
 .calib {
   margin: 16px 0;
   padding: 12px 14px;
-  background: #f6f6f6;
+  background: #e7fcd7;
   border-radius: 10px;
   font-size: 14px;
 }
