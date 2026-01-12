@@ -29,11 +29,6 @@
       Experiment lze kdykoliv ukončit a jakýkoliv počet dokončených úloh je pro výzkum přínosný.
     </p>
 
-    <h2>Anonymita a data</h2>
-    <p>
-      Výsledky se ukládají anonymně do souboru CSV pro každou session.
-    </p>
-
     <h2>Další informace</h2>
     <p>
       Pokud vás téma <i>Malleable Glyphs</i> zaujalo a chcete se o něm dozvědět více:

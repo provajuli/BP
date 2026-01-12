@@ -265,10 +265,6 @@ function onExit() {
     <section>
         <h1>Experiment</h1>
 
-        <div class="meta">
-        <div><strong>Session:</strong> <code>{{ sessionId }}</code></div>
-        </div>
-
         <div v-if="done" class="done">
         <h2>Hotovo ✅</h2>
         <p>
@@ -328,17 +324,6 @@ function onExit() {
 </template>
 
 <style scoped>
-.meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 16px;
-    align-items: center;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-    margin-bottom: 14px;
-}
-
 .counter {
     text-align: center;
     font-weight: 700;
