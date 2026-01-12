@@ -40,7 +40,6 @@ const PREFETCH_RADIUS = 10;
 
 // --------------- Stav ---------------
 const sessionId = ref("");
-const gender = ref("no_answer");
 
 const trials = ref([]); // { glyphType, sizeA, sizeC }
 const trialIndex = ref(0); // 0-based
@@ -244,7 +243,6 @@ async function onNext() {
     sizeA: current.value.sizeA,
     sizeB: sizeB.value,
     sizeC: current.value.sizeC,
-    gender: gender.value,
   };
 
   isSubmitting.value = true;

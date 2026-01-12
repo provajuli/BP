@@ -24,7 +24,6 @@ $glyph = $data["glyph_type"] ?? "";
 $sizeA = intval($data["sizeA"] ?? 0);
 $sizeB = intval($data["sizeB"] ?? 0);
 $sizeC = intval($data["sizeC"] ?? 0);
-$gender = $data["gender"] ?? "no_answer";
 
 if ($index < 1) bad("Bad index");
 if (!is_string($glyph) || $glyph === "") bad("Bad glyph_type");
@@ -49,9 +48,9 @@ if (!$f) {
 if (function_exists("flock")) flock($f, LOCK_EX);
 
 if ($isNew) {
-    fputcsv($f, ["index","glyph_type","sizeA","sizeB","sizeC","gender"]);
+    fputcsv($f, ["index","glyph_type","sizeA","sizeB","sizeC"]);
 }
-fputcsv($f, [$index, $glyph, $sizeA, $sizeB, $sizeC, $gender]);
+fputcsv($f, [$index, $glyph, $sizeA, $sizeB, $sizeC]);
 
 if (function_exists("flock")) flock($f, LOCK_UN);
 fclose($f);
