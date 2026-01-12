@@ -184,24 +184,45 @@ const imgA = computed(() => (current.value ? glyphUrl(current.value.glyphType, c
 const imgB = computed(() => (current.value ? glyphUrl(current.value.glyphType, sizeB.value) : ""));
 const imgC = computed(() => (current.value ? glyphUrl(current.value.glyphType, current.value.sizeC) : ""));
 
-// --------------- Lifecycle ---------------
-onMounted(() => {
-  sessionId.value = crypto.randomUUID();
+function makeSessionId() {
+  // 1) moderní prohlížeče (secure contexts)
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
 
-  trials.value = generateTrials();
-  trialIndex.value = 0;
-  sizeB.value = 1;
-
-  // Prefetch prvního trialu
-  if (current.value) {
-    prefetch(current.value.glyphType, current.value.sizeA);
-    prefetch(current.value.glyphType, current.value.sizeC);
-    prefetchWindow(current.value.glyphType, sizeB.value);
+  // 2) fallback: crypto.getRandomValues (většinou funguje i na http)
+  if (window.crypto?.getRandomValues) {
+    const buf = new Uint8Array(16);
+    window.crypto.getRandomValues(buf);
+    return [...buf].map(b => b.toString(16).padStart(2, "0")).join("");
   }
 
-  const saved = Number(getCookie("dpi"));
-  dpi.value = (Number.isFinite(saved) && saved > 30 && saved < 2000) ? Math.round(saved) : 96;
-  document.documentElement.style.setProperty("--glyph-size", `${dpi.value}px`);
+  // 3) poslední fallback
+  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+}
+
+// --------------- Lifecycle ---------------
+onMounted(() => {
+  try
+  {
+    sessionId.value = makeSessionId();
+
+    trials.value = generateTrials();
+    trialIndex.value = 0;
+    sizeB.value = 1;
+
+    // Prefetch prvního trialu
+    if (current.value) {
+      prefetch(current.value.glyphType, current.value.sizeA);
+      prefetch(current.value.glyphType, current.value.sizeC);
+      prefetchWindow(current.value.glyphType, sizeB.value);
+    }
+
+    const saved = Number(getCookie("dpi"));
+    dpi.value = (Number.isFinite(saved) && saved > 30 && saved < 2000) ? Math.round(saved) : 96;
+    document.documentElement.style.setProperty("--glyph-size", `${dpi.value}px`);
+  }
+  catch (e) {
+    errorMsg.value = e?.message || String(e);
+  }
 });
 
 // --------------- UI Actions ---------------
