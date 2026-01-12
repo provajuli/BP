@@ -61,8 +61,8 @@ refactor data_processing DONE
     - nasadit webovku DONE
     - candle glyphik DONE
     - render glyphiky DONE
-    - linearizace? - tree growth gamma, sun poly3c TODO 12.1.
-    - skripty pro stazeni dat z eva
+    - linearizace? - tree growth gamma, sun poly3c TODO 13.1.
+    - skripty pro stazeni dat z eva DONE
     - vylepsit splines
     - zalozit overleaf DONE
     - pridat metriky - vyvazenost se stredem, vzdalenost od stredu
