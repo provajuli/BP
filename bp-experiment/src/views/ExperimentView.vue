@@ -14,11 +14,11 @@ const GLYPH_TYPES = [
   "candle",
   "ripple_wave",
   // + další simple:
-  "line",
-  "square",
-  "circle",
-  "star",
-  "polygon",
+  //"line",
+  //"square",
+  //"circle",
+  //"star",
+  //"polygon",
 ];
 
 // kolikrát opakovat každý glyph
