@@ -58,12 +58,13 @@ refactor data_processing DONE
         - todo min rozdil 10...? nechat na <10 nebo dat pevne min 10
     - raw web appka DONE
     - upravit webovku (text, napovedy, nazev BP) DONE
-    - nasadit webovku TODO 11.1.
+    - nasadit webovku DONE
     - candle glyphik DONE
     - render glyphiky DONE
-    - linearizace? - tree growth gamma, sun poly3c TODO 11.1.
+    - linearizace? - tree growth gamma, sun poly3c TODO 12.1.
+    - skripty pro stazeni dat z eva
     - vylepsit splines
-    - zalozit overleaf
+    - zalozit overleaf DONE
     - pridat metriky - vyvazenost se stredem, vzdalenost od stredu
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
