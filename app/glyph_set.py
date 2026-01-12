@@ -576,6 +576,23 @@ def ripple_wave_glyph(x: float, canvas: mg.Canvas) -> None:
         canvas.line(points[idx], points[idx + 1], color='navy', width='15p', linecap='round')
 
 
+# --------------------------- MODEL FIT -------------------------
+def ui_to_x(u, gamma):
+    u = max(1, min(100, int(u)))
+    p = u / 100.0
+    x = 100.0 * (p ** (1.0 / gamma))
+    return x
+
+GAMMA = 1.469
+
+def tree_growth_gamma(u: float, canvas: mg.Canvas) -> None:
+    # u = "UI hodnota" 0..100 nebo 1..100 (podle toho co používáš)
+    # převedeme na fyzické x
+    p = max(0.0, min(1.0, u / 100.0))
+    x = 100.0 * (p ** (1.0 / GAMMA))
+    tree_growth(x, canvas)
+
+
 SIMPLE_GLYPHS = {
     "line": horizontal_line,
     "square": simple_scaled_square,
@@ -585,11 +602,12 @@ SIMPLE_GLYPHS = {
 }
 
 ADVANCED_GLYPHS = {
-    "sun": sun_graph,
+    #"sun": sun_graph,
     "tree_growth": tree_growth,
-    "flower": flower,
-    "circular_progressbar": circular_progressbar_ticks_color,
-    "beer": beer_glyph,
-    "candle": candle_glyph,
-    "ripple_wave": ripple_wave_glyph,
+    #"flower": flower,
+    #"circular_progressbar": circular_progressbar_ticks_color,
+    #"beer": beer_glyph,
+    #"candle": candle_glyph,
+    #"ripple_wave": ripple_wave_glyph,
+    "tree_growth_gamma": tree_growth_gamma,
 }

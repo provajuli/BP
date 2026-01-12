@@ -61,13 +61,16 @@ refactor data_processing DONE
     - nasadit webovku DONE
     - candle glyphik DONE
     - render glyphiky DONE
-    - linearizace? - tree growth gamma, sun poly3c TODO 13.1.
+    - linearizace? - tree growth gamma DONE
+                     sun poly3c
     - skripty pro stazeni dat z eva DONE
-    - vylepsit splines
+    - vylepsit splines 
     - zalozit overleaf DONE
     - pridat metriky - vyvazenost se stredem, vzdalenost od stredu
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+- naklikat strom DONE
+- naklikat strom s gamma modifikaci DONE
 
 figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu, asi ne
 
