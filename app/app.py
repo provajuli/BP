@@ -9,12 +9,12 @@ from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 SEED = None
 random.seed(SEED)
-N = 27 # pocet opakovani kazdeho glyphu
+N = 78 # pocet opakovani kazdeho glyphu
 
 PATH = os.path.dirname(os.path.abspath(""))
 print(PATH)
 
-EXPERIMENTAL_OUTPUT_DIR = os.path.join(PATH, "data/user_data_sets/")
+EXPERIMENTAL_OUTPUT_DIR = os.path.join(PATH, "BP/data/user_data_sets/")
 
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
 USE_ADVANCED = True 

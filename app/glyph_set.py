@@ -4,6 +4,42 @@ import colorsys
 import numpy as np
 import random
 
+
+def inv_cubic_constrained(y, b_par, c_par, eps=1e-9):
+    y = np.atleast_1d(np.asarray(y, float)).ravel()
+    out = np.empty_like(y)
+
+    A = (1.0 - b_par - c_par)
+    B = c_par
+    C = b_par
+
+    def fval(xx):
+        return b_par*xx + c_par*xx**2 + (1.0-b_par-c_par)*xx**3
+
+    for i, yi in enumerate(y):
+        yi = float(np.clip(yi, 0.0, 1.0))
+
+        roots = np.roots([A, B, C, -yi])
+        real = roots[np.isreal(roots)].real.astype(float)
+
+        if real.size == 0:
+            xi = 0.0
+        else:
+            in01 = real[(real >= -eps) & (real <= 1.0 + eps)]
+
+            if in01.size > 0:
+                # kořeny v [0,1] – vyber ten, co nejlíp sedí (většinou stačí první, ale tohle je bezpečné)
+                cand = np.clip(in01, 0.0, 1.0)
+                xi = cand[np.argmin(np.abs(fval(cand) - yi))]
+            else:
+                # žádný kořen v [0,1] – fallback: vezmi kořen nejblíž intervalu a potom ho ořízni
+                xi = np.clip(real[np.argmin(np.minimum(np.abs(real - 0.0), np.abs(real - 1.0)))], 0.0, 1.0)
+
+        out[i] = np.clip(xi, 0.0, 1.0)
+
+    return out.reshape(y.shape)
+
+
 def horizontal_line(x: float, canvas:mg.Canvas) -> None:
     canvas.line((mg.lerp(x, canvas.xcenter, canvas.xleft), canvas.ycenter),    
                 (mg.lerp(x, canvas.xcenter, canvas.xright), canvas.ycenter),   
@@ -585,12 +621,27 @@ def ui_to_x(u, gamma):
 
 GAMMA = 1.469
 
+B = 1.2
+C = -1.902
+
 def tree_growth_gamma(u: float, canvas: mg.Canvas) -> None:
     # u = "UI hodnota" 0..100 nebo 1..100 (podle toho co používáš)
     # převedeme na fyzické x
     p = max(0.0, min(1.0, u / 100.0))
     x = 100.0 * (p ** (1.0 / GAMMA))
     tree_growth(x, canvas)
+
+
+def ui_to_x_cc(u: float, b_par: float, c_par: float) -> float:
+    u = max(1, min(100, int(round(u))))
+    p = (u - 1) / 99.0               # 0..1
+    x01 = float(inv_cubic_constrained(p, b_par, c_par)[0])  # 0..1
+    return 100.0 * x01               # 0..100 pro mglyph
+
+
+def sun_graph_cc(u: float, canvas: mg.Canvas) -> None:
+    x = ui_to_x_cc(u, B, C)
+    sun_graph(x, canvas)
 
 
 SIMPLE_GLYPHS = {
@@ -603,11 +654,12 @@ SIMPLE_GLYPHS = {
 
 ADVANCED_GLYPHS = {
     #"sun": sun_graph,
-    "tree_growth": tree_growth,
+    #"tree_growth": tree_growth,
     #"flower": flower,
     #"circular_progressbar": circular_progressbar_ticks_color,
     #"beer": beer_glyph,
     #"candle": candle_glyph,
     #"ripple_wave": ripple_wave_glyph,
-    "tree_growth_gamma": tree_growth_gamma,
+    #"tree_growth_gamma": tree_growth_gamma,
+    "sun_cc": sun_graph_cc,
 }
