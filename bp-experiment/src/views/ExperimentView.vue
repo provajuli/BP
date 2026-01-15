@@ -224,7 +224,48 @@ onMounted(() => {
   }
 });
 
+
 // --------------- UI Actions ---------------
+// --- Touch / Pointer ovládání pro B ---
+const dragging = ref(false);
+let startY = 0;
+let startValue = 1;
+
+const PX_PER_STEP = 12; // citlivost: kolik px = 1 krok (uprav dle pocitu)
+
+function onPointerDownB(e) {
+  // jen levé tlačítko myši; touch/stylus tím neblokuj
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+
+  dragging.value = true;
+  startY = e.clientY;
+  startValue = sizeB.value;
+
+  // capture = i když ujedeš mimo obrázek, pořád to táhne
+  e.currentTarget?.setPointerCapture?.(e.pointerId);
+
+  // zabrání scrollu / selection
+  e.preventDefault();
+}
+
+function onPointerMoveB(e) {
+  if (!dragging.value) return;
+
+  const dy = startY - e.clientY; // nahoru = plus
+  const steps = Math.round(dy / PX_PER_STEP);
+
+  sizeB.value = clampInt(startValue + steps, 1, 100);
+
+  if (current.value) prefetchWindow(current.value.glyphType, sizeB.value);
+  e.preventDefault();
+}
+
+function onPointerUpB(e) {
+  dragging.value = false;
+  e.preventDefault();
+}
+
+
 function onWheelB(e) {
   e.preventDefault();
   const delta = e.deltaY < 0 ? 1 : -1; // wheel up = +1
@@ -311,11 +352,16 @@ function onExit() {
             <div class="glyphCol">
             <div class="label">B</div>
             <img
-                class="glyph glyphB"
-                :src="imgB"
-                alt="Glyph B"
-                @wheel="onWheelB"
-                title="Použij kolečko myši"
+              class="glyph glyphB"
+              :class="{ dragging }"
+              :src="imgB"
+              alt="Glyph B"
+              @wheel="onWheelB"
+              @pointerdown="onPointerDownB"
+              @pointermove="onPointerMoveB"
+              @pointerup="onPointerUpB"
+              @pointercancel="onPointerUpB"
+              title="Kolečko myši / táhni prstem nahoru-dolů"
             />
             </div>
 
@@ -378,11 +424,15 @@ function onExit() {
 }
 
 .glyphB {
-    cursor: ns-resize;
+  cursor: ns-resize;
+  touch-action: none;      /* klíčové: zabrání scrollování při dragu */
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
-.slider {
-    width: 220px;
+.glyphB.dragging {
+  outline: 2px solid #111;
+  outline-offset: 2px;
 }
 
 .hint {

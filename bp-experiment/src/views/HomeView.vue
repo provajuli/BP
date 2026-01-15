@@ -10,14 +10,14 @@
     <h2>Jak experiment probíhá</h2>
     <ol>
       <li>Na obrazovce se zobrazí tři glyphy: A, B a C (A a C mohou mít libovolné vzájemné pořadí velikostí).</li>
-      <li>A a C mají pevnou velikost, B upravujete kolečkem myši (příp. touchpadem).</li>
-      <li>Vaším úkolem je nastavit B tak, aby subjektivně odpovídalo <b>středu velikostí mezi A a C</b>.</li>
+      <li>A a C mají pevnou velikost, B upravujete kolečkem myši, touchpadem, nebo na dotykových zařízeních tahem nahoru nebo dolů na prostředním glyphu.</li>
+      <li>Vaším úkolem je nastavit B tak, aby subjektivně odpovídalo <b>středu velikostí (průběhů) mezi A a C</b>.</li>
       <li>Po kliknutí na „Next“ se uloží anonymní výsledky do souboru CSV.</li>
     </ol>
 
     <div class="calib">
       <p>
-        Pro správnou fyzickou velikost glyphů (1x1 inch) doporučuji provést kalibraci monitoru.
+        Pro správnou fyzickou velikost glyphů (1x1 inch) doporučuji provést kalibraci monitoru/displeje.
       </p>
 
       <RouterLink class="btn secondary" to="/calibration">Kalibrace monitoru</RouterLink>
