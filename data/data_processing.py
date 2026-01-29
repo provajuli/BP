@@ -488,7 +488,6 @@ def fit_poly3c_model(A, B, C, outliers_pct=0.0):
 
 
 def compute_beak_error_no_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT):
-
     # Získám zobáčky
     beak_x, beak_y = beak_points(A, B, C, function, return_all=False)
 
@@ -521,7 +520,7 @@ def compute_beak_error_no_outliers(A, B, C, function, outliers_pct=OUTLIERS_PCT)
 
 
 # -------------------- PIECEWISE (monotónní) --------------------
-PIECE_N_KNOTS = 11          # 9/11/15… podle toho jak hladké chceš
+PIECE_N_KNOTS = 9          # 9/11/15… podle toho jak hladké chceš
 PIECE_INV_GRID = 2000       # hustota pro rychlou inverzi přes searchsorted
 
 def softplus(z):
@@ -637,10 +636,12 @@ def beak_plot_models_for_glyph(
     # PIECEWISE
     (xk, yk), f_pw, mask_pw = fit_piecewise_model(A_g, B_g, C_g, outliers_pct=outliers_pct, n_knots=PIECE_N_KNOTS)
 
-    fig, axes = plt.subplots(1, 4, figsize=(24, 6), sharex=True, sharey=True)
+    fig, axes = plt.subplots(1, 3, figsize=(24, 6), sharex=True, sharey=True)
+
+    fig.suptitle(f"Beak plots for glyph type: {glyph}", fontsize=16)
 
     beak_plot_for_glyph(f_lin, A_g, B_g, C_g,
-        title=f"Linear — {glyph}",
+        title=f"Linear",
         axis=axes[0], mask=mask_lin, plot_outliers=plot_outliers)
 
     beak_plot_for_glyph(f_gam, A_g, B_g, C_g,
@@ -651,60 +652,9 @@ def beak_plot_models_for_glyph(
         title=f"Poly3C b={b:.3f}, c={c:.3f}, inliers={mask_cc.sum()}/{len(mask_cc)}",
         axis=axes[2], mask=mask_cc, plot_outliers=plot_outliers)
 
-    beak_plot_for_glyph(f_pw, A_g, B_g, C_g,
-        title=f"Piecewise K={len(xk)}, inliers={mask_pw.sum()}/{len(mask_pw)}",
-        axis=axes[3], mask=mask_pw, plot_outliers=plot_outliers)
-
-    plt.tight_layout()
-    fname = "with_outliers" if plot_outliers else "no_outliers"
-    plt.savefig(os.path.join(outdir, f"beak_{fname}_{glyph}.png"), dpi=120)
-    plt.close()
-
-
-def beak_plot_models_for_glyph(
-    glyph,
-    glyph_types,
-    A, B, C,
-    outliers_pct=0.0,
-    plot_outliers=False,
-    outdir=IMAGES_OUTPUT_DIR
-):
-    m = glyph_types == glyph
-    A_g, B_g, C_g = A[m], B[m], C[m]
-
-    # LINEAR
-    f_lin = lambda x: x
-    mask_lin = np.ones(len(A_g), bool) if outliers_pct <= 0 else \
-               mask_for_model(A_g, B_g, C_g, f_lin, outliers_pct)
-
-    # GAMMA
-    gamma, mask_gam = fit_gamma_model(A_g, B_g, C_g, outliers_pct)
-    f_gam = lambda x: gamma_function(x, gamma)
-
-    # POLY3C
-    (b, c), mask_cc = fit_poly3c_model(A_g, B_g, C_g, outliers_pct)
-    f_cc = lambda x: cubic_constrained_function(x, b, c)
-
-    # PIECEWISE
-    (xk, yk), f_pw, mask_pw = fit_piecewise_model(A_g, B_g, C_g, outliers_pct=outliers_pct, n_knots=PIECE_N_KNOTS)
-
-    fig, axes = plt.subplots(1, 4, figsize=(24, 6), sharex=True, sharey=True)
-
-    beak_plot_for_glyph(f_lin, A_g, B_g, C_g,
-        title=f"Linear — {glyph}",
-        axis=axes[0], mask=mask_lin, plot_outliers=plot_outliers)
-
-    beak_plot_for_glyph(f_gam, A_g, B_g, C_g,
-        title=f"Gamma γ={gamma:.3f}, inliers={mask_gam.sum()}/{len(mask_gam)}",
-        axis=axes[1], mask=mask_gam, plot_outliers=plot_outliers)
-
-    beak_plot_for_glyph(f_cc, A_g, B_g, C_g,
-        title=f"Poly3C b={b:.3f}, c={c:.3f}, inliers={mask_cc.sum()}/{len(mask_cc)}",
-        axis=axes[2], mask=mask_cc, plot_outliers=plot_outliers)
-
-    beak_plot_for_glyph(f_pw, A_g, B_g, C_g,
-        title=f"Piecewise K={len(xk)}, inliers={mask_pw.sum()}/{len(mask_pw)}",
-        axis=axes[3], mask=mask_pw, plot_outliers=plot_outliers)
+    #beak_plot_for_glyph(f_pw, A_g, B_g, C_g,
+        #title=f"Piecewise K={len(xk)}, inliers={mask_pw.sum()}/{len(mask_pw)}",
+        #axis=axes[3], mask=mask_pw, plot_outliers=plot_outliers)
 
     plt.tight_layout()
     fname = "with_outliers" if plot_outliers else "no_outliers"

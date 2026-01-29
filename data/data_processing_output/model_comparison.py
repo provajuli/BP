@@ -30,7 +30,7 @@ COLORS = {
     "linear": "blue",
     "gamma": "green",
     "poly3c": "red",
-    "piecewise": "orange"
+    #"piecewise": "orange"
 }
 
 
@@ -78,8 +78,8 @@ def error_error_plot(results, glyph, title, output, global_max):
     ax.spines["top"].set_color("none")
 
     # popisky os
-    ax.set_xlabel("Unsigned average distance from curve/beak_point")
-    ax.set_ylabel("Signed average absolute distance from curve/beak_point")
+    ax.set_xlabel("Unsigned average distance from curve to beak point")
+    ax.set_ylabel("Signed average absolute distance from curve to beak point")
 
     # ticks
     ax.tick_params(axis="both", which="major", pad=6)

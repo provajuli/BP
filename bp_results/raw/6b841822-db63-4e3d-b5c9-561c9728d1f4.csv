@@ -1,0 +1,6 @@
+index,glyph_type,sizeA,sizeB,sizeC
+1,tree_growth,60,32,38
+2,tree_growth,40,30,25
+3,tree_growth,65,43,16
+4,sun,95,90,85
+5,circular_progressbar,20,12,6

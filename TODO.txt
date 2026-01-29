@@ -55,26 +55,31 @@ refactor data_processing DONE
 
 !!!!!!!!!!!!!!!!! BIG TODOS !!!!!!!!!!!!!!!!!!!!!!!!!
     - upravit generujici alg. DONE 
-        - todo min rozdil 10...? nechat na <10 nebo dat pevne min 10
+        - todo min rozdil 10...? nechat na <10 nebo dat pevne min 10, je to good
     - raw web appka DONE
     - upravit webovku (text, napovedy, nazev BP) DONE
     - nasadit webovku DONE
     - candle glyphik DONE
     - render glyphiky DONE
     - linearizace? - tree growth gamma DONE
-                     sun poly3c
+                     sun poly3c DONE
     - skripty pro stazeni dat z eva DONE
     - vylepsit splines 
     - zalozit overleaf DONE
     - pridat metriky - vyvazenost se stredem, vzdalenost od stredu
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+!!!!!!!!!!!!!!!!! NEW BIG TODOS !!!!!!!!!!!!!!!!!!!!!!!!!
+    - filtr dat z webu - validace
+    - splajny
+    - self evaluation tool
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 - naklikat strom DONE
 - naklikat strom s gamma modifikaci DONE
 
 figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu, asi ne
-
-zkoumani glyphu s maximem v bode X (X != 100)
 
 POTOM, kdyz bude cas:
 (aspon trochu) optimalizace - cerpej z IZV
