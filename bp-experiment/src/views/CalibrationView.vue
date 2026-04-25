@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
+import { useI18n } from "vue-i18n";
+
+const {t} = useI18n();
 
 const router = useRouter();
 
@@ -40,13 +43,9 @@ function reset() {
 
 <template>
   <section class="wrap">
-    <h1>Kalibrace velikosti (1 inch)</h1>
+    <h1>{{t('calibration_title')}}</h1>
 
-    <p class="lead">
-      Upravte velikost čtverce tak, aby jeho strana odpovídala
-      <b>1 palci (2.54&nbsp;cm)</b> na vašem pravítku.
-      Díky tomu budou glyphy vykreslovány ve správné fyzické velikosti.
-    </p>
+    <p class="lead">{{t('calibration_description')}}</p>
 
     <div class="calibArea">
       <div
@@ -57,13 +56,13 @@ function reset() {
       </div>
 
       <div class="stats">
-        <div><b>Velikost:</b> {{ inchPx }} px</div>
+        <div><b>{{ t('calibration_size') }}</b> {{ inchPx }} px</div>
         <div><b>DPI:</b> {{ dpi }}</div>
       </div>
     </div>
 
     <label class="sliderLabel">
-      Nastavení velikosti:
+      {{t('calibration_adjust')}}
       <input
         type="range"
         min="50"
@@ -75,7 +74,7 @@ function reset() {
 
     <div class="actions">
       <button class="btn secondary" @click="reset">Reset</button>
-      <button class="btn" @click="saveCalibration">Uložit a pokračovat</button>
+      <button class="btn" @click="saveCalibration">{{t('calibration_save_continue')}}</button>
     </div>
   </section>
 </template>
@@ -131,16 +130,40 @@ input[type="range"] {
 }
 
 .btn {
-  padding: 10px 14px;
+  display: inline-block;
+  padding: 10px 18px;
   border-radius: 12px;
   border: 1px solid #111;
   background: #111;
   color: #fff;
+  text-decoration: none;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn:hover {
+  background: #222;
+  transform: translateY(-1px);
+}
+
+.btn:active {
+  transform: translateY(0);
+  background: #000;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
 }
 
 .btn.secondary {
   background: #fff;
   color: #111;
+  border: 1px solid #d6d6d6;
+}
+
+.btn.secondary:hover {
+  background: #f7f7f7;
 }
 </style>

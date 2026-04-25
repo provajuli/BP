@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-RAW_DIR="$HOME/a_school/BP/bp_results/raw"
+PROC_DIR="$HOME/a_school/BP/bp_results/processed"
 OUT="$HOME/a_school/BP/bp_results/master.csv"
 
 mkdir -p "$(dirname "$OUT")"
 
-# najdi csv, seřaď, vezmi první hlavičku, pak appenduj zbytek bez hlaviček
-files=( "$RAW_DIR"/*.csv )
+files=( "$PROC_DIR"/*.csv )
 if [ ! -e "${files[0]}" ]; then
-  echo "No CSV files in $RAW_DIR"
+  echo "No CSV files in $PROC_DIR"
   exit 0
 fi
 
@@ -19,8 +18,9 @@ fi
 # hlavička z prvního souboru
 head -n 1 "${files[0]}" > "$OUT"
 
-# data ze všech souborů bez hlaviček
+# data ze všech souborů
 for f in "${files[@]}"; do
+  echo "# $(basename "$f")" >> "$OUT"
   tail -n +2 "$f" >> "$OUT"
 done
 

@@ -9,7 +9,7 @@ from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 SEED = None
 random.seed(SEED)
-N = 78 # pocet opakovani kazdeho glyphu
+N = 20 # pocet opakovani kazdeho glyphu
 
 PATH = os.path.dirname(os.path.abspath(""))
 print(PATH)
@@ -17,12 +17,12 @@ print(PATH)
 EXPERIMENTAL_OUTPUT_DIR = os.path.join(PATH, "BP/data/user_data_sets/")
 
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
-USE_ADVANCED = True 
+USE_ADVANCED = False 
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
 
 
 def render_png(glyph_type: str, x: float) -> bytes:
-    result = mg.render(glyphs[glyph_type], (96, 96), [x])
+    result = mg.render(glyphs[glyph_type], (104, 104), [x])
     pil_img = result[0]["pil"]
     buf = BytesIO()
     pil_img.save(buf, format="PNG")

@@ -70,9 +70,14 @@ refactor data_processing DONE
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 !!!!!!!!!!!!!!!!! NEW BIG TODOS !!!!!!!!!!!!!!!!!!!!!!!!!
-    - filtr dat z webu - validace
-    - splajny
-    - self evaluation tool
+    - filtr dat z webu - validace do 6.2. DONE???
+    - splajny do 6.2. DONE
+    - upravit popisky grafu do 6.2. DONE
+    - self evaluation tool do 10.2.
+    - napsat osnovu do 10.2.
+    - napsat kapitolu na ostro do 10.2.
+    - udelat prikazy pro barevny text do LateXu
+    - webovka hostovana pres github pro dalsi vyzkum
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
@@ -82,4 +87,7 @@ refactor data_processing DONE
 figure out jak merit presne euklid vzdalenost od krivky -> ne jen vzorkovanim bodu, asi ne
 
 POTOM, kdyz bude cas:
-(aspon trochu) optimalizace - cerpej z IZV
+optimalizace - cerpej z IZV
+zverejnit pokus na Reddit
+
+

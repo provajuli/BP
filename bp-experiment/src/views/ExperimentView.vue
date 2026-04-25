@@ -1,11 +1,13 @@
 <script setup>
 import { computed, onMounted, ref } from "vue";
+import { RouterLink } from "vue-router";
 import { submitResult } from "../services/api";
+import { useI18n } from "vue-i18n";
+
+const { t } = useI18n();
 
 // --------------- Nastavení experimentu ---------------
-// UPRAV SI podle toho, co budeš mít v public/glyphs/<name>/
 const GLYPH_TYPES = [
-  // příklady – nahraď svými složkami:
   "sun",
   "tree_growth",
   "flower",
@@ -13,36 +15,24 @@ const GLYPH_TYPES = [
   "beer",
   "candle",
   "ripple_wave",
-  // + další simple:
-  //"line",
-  //"square",
-  //"circle",
-  //"star",
-  //"polygon",
 ];
 
-// kolikrát opakovat každý glyph
 const REPEATS_PER_GLYPH = 20;
-
-// rozdíl mezi A a C
 const X_MIN = 10;
 const X_MAX = 50;
 
-// biny pro "kotvu" (aby byly rovnoměrně)
 const BINS = [
   [1, 33],
   [34, 66],
   [67, 100],
 ];
 
-// prefetch okno pro plynulé kolečko
 const PREFETCH_RADIUS = 10;
 
 // --------------- Stav ---------------
 const sessionId = ref("");
-
-const trials = ref([]); // { glyphType, sizeA, sizeC }
-const trialIndex = ref(0); // 0-based
+const trials = ref([]);
+const trialIndex = ref(0);
 const sizeB = ref(1);
 
 const isSubmitting = ref(false);
@@ -82,7 +72,6 @@ function shuffleInPlace(arr) {
   return arr;
 }
 
-// rovnoměrné rozložení binů: vytvoříme seznam bin indexů stejné délky jako trials
 function makeBalancedBinOrder(n) {
   const bins = [];
   const base = Math.floor(n / BINS.length);
@@ -95,25 +84,17 @@ function makeBalancedBinOrder(n) {
   return shuffleInPlace(bins);
 }
 
-/**
- * Vygeneruje jednu dvojici (A,C) tak, aby:
- * - kotva (min nebo max) byla rovnoměrně v určeném binu
- * - rozdíl x byl v [X_MIN, X_MAX] a druhá hodnota zůstala v [1,100]
- */
 function generatePairForBin(binIdx) {
   const [lo, hi] = BINS[binIdx];
-
-  // 50/50: kotva bude minimum nebo maximum z (A,C)
   const anchorIsMin = Math.random() < 0.5;
-
-  // anchor rovnoměrně z binu
   const anchor = lo + Math.floor(Math.random() * (hi - lo + 1));
 
-  // povolený rozsah x podle toho, jestli jdeme nahoru nebo dolů
-  const maxX = anchorIsMin ? Math.min(X_MAX, 100 - anchor) : Math.min(X_MAX, anchor - 1);
-  const minX = Math.min(X_MIN, maxX); // když je maxX menší než X_MIN (blízko hranic), zmenšíme min
+  const maxX = anchorIsMin
+    ? Math.min(X_MAX, 100 - anchor)
+    : Math.min(X_MAX, anchor - 1);
 
-  // když by maxX bylo < 1, je to špatně (bin je moc u kraje); zkusíme znovu (v praxi to nastane málokdy)
+  const minX = Math.min(X_MIN, maxX);
+
   if (maxX < 1) return null;
 
   const x = minX + Math.floor(Math.random() * (maxX - minX + 1));
@@ -122,14 +103,12 @@ function generatePairForBin(binIdx) {
   let a = anchorIsMin ? anchor : other;
   let c = anchorIsMin ? other : anchor;
 
-  // náhodně prohodit A/C, aby nebylo vždy A menší a C větší
   if (Math.random() < 0.5) [a, c] = [c, a];
 
   return { sizeA: a, sizeC: c };
 }
 
 function generateTrials() {
-  // order glyphů: každý N×
   const order = [];
   for (const g of GLYPH_TYPES) {
     for (let i = 0; i < REPEATS_PER_GLYPH; i++) order.push(g);
@@ -144,14 +123,13 @@ function generateTrials() {
     const glyphType = order[i];
     const binIdx = binOrder[i];
 
-    // robustní generace: zkusíme párkrát, než vzdáme
     let pair = null;
     for (let tries = 0; tries < 50; tries++) {
       pair = generatePairForBin(binIdx);
       if (pair) break;
     }
+
     if (!pair) {
-      // fallback (extrémně vzácné)
       const a = 1 + Math.floor(Math.random() * 100);
       let c = 1 + Math.floor(Math.random() * 100);
       if (c === a) c = clampInt(c + 1, 1, 100);
@@ -168,6 +146,18 @@ function getCookie(name) {
   return m ? decodeURIComponent(m[2]) : null;
 }
 
+function makeSessionId() {
+  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
+
+  if (window.crypto?.getRandomValues) {
+    const buf = new Uint8Array(16);
+    window.crypto.getRandomValues(buf);
+    return [...buf].map((b) => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
+}
+
 const dpi = ref(96);
 
 // --------------- Computed ---------------
@@ -179,36 +169,25 @@ const counterText = computed(() => {
   return `${Math.min(trialIndex.value + 1, totalTrials.value)} / ${totalTrials.value}`;
 });
 
-const imgA = computed(() => (current.value ? glyphUrl(current.value.glyphType, current.value.sizeA) : ""));
-const imgB = computed(() => (current.value ? glyphUrl(current.value.glyphType, sizeB.value) : ""));
-const imgC = computed(() => (current.value ? glyphUrl(current.value.glyphType, current.value.sizeC) : ""));
-
-function makeSessionId() {
-  // 1) moderní prohlížeče (secure contexts)
-  if (window.crypto?.randomUUID) return window.crypto.randomUUID();
-
-  // 2) fallback: crypto.getRandomValues (většinou funguje i na http)
-  if (window.crypto?.getRandomValues) {
-    const buf = new Uint8Array(16);
-    window.crypto.getRandomValues(buf);
-    return [...buf].map(b => b.toString(16).padStart(2, "0")).join("");
-  }
-
-  // 3) poslední fallback
-  return `${Date.now().toString(16)}-${Math.random().toString(16).slice(2)}`;
-}
+const imgA = computed(() =>
+  current.value ? glyphUrl(current.value.glyphType, current.value.sizeA) : ""
+);
+const imgB = computed(() =>
+  current.value ? glyphUrl(current.value.glyphType, sizeB.value) : ""
+);
+const imgC = computed(() =>
+  current.value ? glyphUrl(current.value.glyphType, current.value.sizeC) : ""
+);
 
 // --------------- Lifecycle ---------------
 onMounted(() => {
-  try
-  {
+  try {
     sessionId.value = makeSessionId();
 
     trials.value = generateTrials();
     trialIndex.value = 0;
     sizeB.value = 1;
 
-    // Prefetch prvního trialu
     if (current.value) {
       prefetch(current.value.glyphType, current.value.sizeA);
       prefetch(current.value.glyphType, current.value.sizeC);
@@ -216,42 +195,39 @@ onMounted(() => {
     }
 
     const saved = Number(getCookie("dpi"));
-    dpi.value = (Number.isFinite(saved) && saved > 30 && saved < 2000) ? Math.round(saved) : 96;
+    dpi.value =
+      Number.isFinite(saved) && saved > 30 && saved < 2000
+        ? Math.round(saved)
+        : 96;
+
     document.documentElement.style.setProperty("--glyph-size", `${dpi.value}px`);
-  }
-  catch (e) {
+  } catch (e) {
     errorMsg.value = e?.message || String(e);
   }
 });
 
-
 // --------------- UI Actions ---------------
-// --- Touch / Pointer ovládání pro B ---
 const dragging = ref(false);
 let startY = 0;
 let startValue = 1;
 
-const PX_PER_STEP = 12; // citlivost: kolik px = 1 krok (uprav dle pocitu)
+const PX_PER_STEP = 12;
 
 function onPointerDownB(e) {
-  // jen levé tlačítko myši; touch/stylus tím neblokuj
   if (e.pointerType === "mouse" && e.button !== 0) return;
 
   dragging.value = true;
   startY = e.clientY;
   startValue = sizeB.value;
 
-  // capture = i když ujedeš mimo obrázek, pořád to táhne
   e.currentTarget?.setPointerCapture?.(e.pointerId);
-
-  // zabrání scrollu / selection
   e.preventDefault();
 }
 
 function onPointerMoveB(e) {
   if (!dragging.value) return;
 
-  const dy = startY - e.clientY; // nahoru = plus
+  const dy = startY - e.clientY;
   const steps = Math.round(dy / PX_PER_STEP);
 
   sizeB.value = clampInt(startValue + steps, 1, 100);
@@ -265,10 +241,9 @@ function onPointerUpB(e) {
   e.preventDefault();
 }
 
-
 function onWheelB(e) {
   e.preventDefault();
-  const delta = e.deltaY < 0 ? 1 : -1; // wheel up = +1
+  const delta = e.deltaY < 0 ? 1 : -1;
   sizeB.value = clampInt(sizeB.value + delta, 1, 100);
   if (current.value) prefetchWindow(current.value.glyphType, sizeB.value);
 }
@@ -279,7 +254,7 @@ async function onNext() {
 
   const payload = {
     session_id: sessionId.value,
-    index: trialIndex.value + 1, // 1-based
+    index: trialIndex.value + 1,
     glyph_type: current.value.glyphType,
     sizeA: current.value.sizeA,
     sizeB: sizeB.value,
@@ -290,7 +265,6 @@ async function onNext() {
   try {
     await submitResult(payload);
 
-    // posun na další trial
     trialIndex.value += 1;
 
     if (trialIndex.value >= trials.value.length) {
@@ -298,10 +272,8 @@ async function onNext() {
       return;
     }
 
-    // reset B
     sizeB.value = 1;
 
-    // prefetch pro nový trial
     if (current.value) {
       prefetch(current.value.glyphType, current.value.sizeA);
       prefetch(current.value.glyphType, current.value.sizeC);
@@ -315,179 +287,295 @@ async function onNext() {
 }
 
 function onExit() {
-  if (confirm("Opravdu chcete ukončit experiment?")) {
+  if (confirm(t('exit_confirm'))) {
     done.value = true;
   }
 }
 </script>
 
 <template>
-    <section>
-        <h1>Experiment</h1>
+  <section class="experiment">
+    <h1>Experiment</h1>
 
-        <div v-if="done" class="done">
-        <h2>Hotovo ✅</h2>
-        <p>
-            Děkuji! Výsledky se ukládají do CSV souboru pro tuto session.
-        </p>
-        <p>
-            <strong>Session ID:</strong> <code>{{ sessionId }}</code>
-        </p>
+    <div v-if="done" class="done">
+      <h2>{{ t('done') }}</h2>
+      <p>{{ t('experiment_done_message') }}</p>
+      <p><strong>Session ID:</strong> <code>{{ sessionId }}</code></p>
+    </div>
+
+    <template v-else>
+      <p v-if="dpi === 96" class="warn">
+        {{ t('calibration_warning') }}
+        <RouterLink to="/calibration">{{ t('calibration_link') }}</RouterLink>.
+      </p>
+
+      <div class="counter">{{ counterText }}</div>
+
+      <div v-if="current" class="row">
+        <div class="glyphCol">
+          <div class="label">A</div>
+          <img class="glyph" :src="imgA" alt="Glyph A" />
         </div>
 
-        <template v-else>
-        <p v-if="dpi === 96" class="warn">
-          Pro přesnou fyzickou velikost glyphů (1x1 inch) doporučuji provést
-          <RouterLink to="/calibration">kalibraci monitoru</RouterLink>.
-        </p>
-        
-        <div class="counter">{{ counterText }}</div>
-
-        <div v-if="current" class="row">
-            <div class="glyphCol">
-            <div class="label">A</div>
-            <img class="glyph" :src="imgA" alt="Glyph A" />
-            </div>
-
-            <div class="glyphCol">
-            <div class="label">B</div>
-            <img
-              class="glyph glyphB"
-              :class="{ dragging }"
-              :src="imgB"
-              alt="Glyph B"
-              @wheel="onWheelB"
-              @pointerdown="onPointerDownB"
-              @pointermove="onPointerMoveB"
-              @pointerup="onPointerUpB"
-              @pointercancel="onPointerUpB"
-              title="Kolečko myši / táhni prstem nahoru-dolů"
-            />
-            </div>
-
-            <div class="glyphCol">
-            <div class="label">C</div>
-            <img class="glyph" :src="imgC" alt="Glyph C" />
-            </div>
+        <div class="glyphCol">
+          <div class="label">B</div>
+          <img
+            class="glyph glyphB"
+            :class="{ dragging }"
+            :src="imgB"
+            alt="Glyph B"
+            @wheel="onWheelB"
+            @pointerdown="onPointerDownB"
+            @pointermove="onPointerMoveB"
+            @pointerup="onPointerUpB"
+            @pointercancel="onPointerUpB"
+          />
+          <div class="hint">{{ t('glyphB_hint') }}</div>
         </div>
 
-        <div class="actions">
-            <button class="btn secondary" @click="onExit">
-                Ukončit experiment
-            </button>
-
-            <button class="btn" :disabled="isSubmitting || !current" @click="onNext">
-            {{ isSubmitting ? "Ukládám..." : "Next" }}
-            </button>
+        <div class="glyphCol">
+          <div class="label">C</div>
+          <img class="glyph" :src="imgC" alt="Glyph C" />
         </div>
+      </div>
 
-        <p v-if="errorMsg" class="error">
-            <strong>Chyba:</strong> {{ errorMsg }}
-        </p>
-        </template>
-    </section>
+      <div class="actions">
+        <button class="btn secondary" @click="onExit">
+          {{ t('exit') }}
+        </button>
+
+        <button class="btn" :disabled="isSubmitting || !current" @click="onNext">
+          {{ isSubmitting ? t('submitting') : t('next') }}
+        </button>
+      </div>
+
+      <p v-if="errorMsg" class="error">
+        <strong>{{ t('error') }}</strong> {{ errorMsg }}
+      </p>
+    </template>
+  </section>
 </template>
 
 <style scoped>
+.experiment {
+  max-width: 720px;
+  margin: 0 auto;
+  line-height: 1.65;
+  color: #222;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+h2 {
+  margin: 0 0 10px;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+p {
+  margin: 0 0 14px;
+  font-size: 15px;
+}
+
 .counter {
-    text-align: center;
-    font-weight: 700;
-    margin: 10px 0 14px;
+  margin: 18px 0 20px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #444;
 }
 
 .row {
-    display: flex;
-    justify-content: center;
-    gap: 18px;
-    align-items: start;
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 24px;
+  flex-wrap: nowrap;
+  margin-bottom: 24px;
 }
 
 .glyphCol {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-    min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  min-width: 180px;
 }
 
 .label {
-    font-weight: 700;
+  font-size: 15px;
+  font-weight: 700;
+  color: #111;
 }
 
 .glyph {
-    width: var(--glyph-size, 96px);
-    height: var(--glyph-size, 96px);
-    border: 1px solid #ddd;
-    border-radius: 14px;
-    background: #fff;
+  width: var(--glyph-size, 96px);
+  height: var(--glyph-size, 96px);
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .glyphB {
   cursor: ns-resize;
-  touch-action: none;      /* klíčové: zabrání scrollování při dragu */
+  touch-action: none;
   user-select: none;
   -webkit-user-drag: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, outline-color 0.15s ease;
+}
+
+.glyphB:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .glyphB.dragging {
   outline: 2px solid #111;
-  outline-offset: 2px;
+  outline-offset: 3px;
 }
 
 .hint {
-    font-size: 12px;
-    color: #666;
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  max-width: 140px;
+  line-height: 1.4;
 }
 
 .actions {
-    display: flex;
-    justify-content: center;
-    margin-top: 14px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 10px;
+  flex-wrap: wrap;
 }
 
 .btn {
-    padding: 10px 16px;
-    border-radius: 12px;
-    border: 1px solid #111;
-    background: #111;
-    color: #fff;
-    cursor: pointer;
+  display: inline-block;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #111;
+  background: #111;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  transition: all 0.2s ease;
 }
+
+.btn:hover:not(:disabled) {
+  background: #222;
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+  background: #000;
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.15);
+}
+
 .btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .btn.secondary {
-    background: #fff;
-    color: #111;
-    margin-right: 1px;
+  background: #fff;
+  color: #111;
+  border: 1px solid #d6d6d6;
 }
+
+.btn.secondary:hover:not(:disabled) {
+  background: #f7f7f7;
+}
+
+.warn {
+  margin: 10px 0 18px;
+  padding: 14px 16px;
+  background: #fff8db;
+  border: 1px solid #f0d36b;
+  border-radius: 14px;
+  font-size: 14px;
+  color: #5f4b00;
+  text-align: center;
+}
+
+.warn a {
+  color: #111;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .error {
-    margin-top: 12px;
-    color: #b00020;
-    text-align: center;
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #fff1f3;
+  border: 1px solid #f3c7cf;
+  color: #b00020;
+  text-align: center;
+  font-size: 14px;
 }
 
 .done {
-    padding: 14px;
-    border: 1px solid #ddd;
-    border-radius: 12px;
-}
-code {
-    background: #f3f3f3;
-    padding: 2px 6px;
-    border-radius: 8px;
+  margin-top: 8px;
+  padding: 18px;
+  border: 1px solid #dcdcdc;
+  border-radius: 14px;
+  background: #fafafa;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
 }
 
-.warn{
-  text-align:center;
-  background:#fff8db;
-  border:1px solid #f2c200;
-  padding:10px 12px;
-  border-radius:12px;
-  margin: 10px auto 12px;
-  max-width: 680px;
+code {
+  background: #f3f3f3;
+  padding: 2px 6px;
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .experiment {
+    max-width: 100%;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+
+  h2 {
+    font-size: 18px;
+  }
+
+.row {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .glyphCol {
+    min-width: 140px;
+  }
+
+  .actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .btn {
+    width: 100%;
+    text-align: center;
+  }
 }
 </style>

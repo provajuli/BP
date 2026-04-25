@@ -1,8 +1,8 @@
 import mglyph as mg
 import math
-import colorsys
 import numpy as np
 import random
+import os
 
 
 def inv_cubic_constrained(y, b_par, c_par, eps=1e-9):
@@ -619,10 +619,17 @@ def ui_to_x(u, gamma):
     x = 100.0 * (p ** (1.0 / gamma))
     return x
 
-GAMMA = 1.469
+#GAMMA = 1.469
+#GAMMA = 1.534
+GAMMA = 1.5
 
-B = 1.2
-C = -1.902
+B_sun = 1.2
+#C = -1.902
+#C = -1.816
+C_sun = -1.85
+
+B_tree = 0.455
+C_tree = 0.040
 
 def tree_growth_gamma(u: float, canvas: mg.Canvas) -> None:
     # u = "UI hodnota" 0..100 nebo 1..100 (podle toho co používáš)
@@ -640,9 +647,13 @@ def ui_to_x_cc(u: float, b_par: float, c_par: float) -> float:
 
 
 def sun_graph_cc(u: float, canvas: mg.Canvas) -> None:
-    x = ui_to_x_cc(u, B, C)
+    x = ui_to_x_cc(u, B_sun, C_sun)
     sun_graph(x, canvas)
 
+
+def tree_growth_cc(u: float, canvas: mg.Canvas) -> None:
+    x = ui_to_x_cc(u, B_tree, C_tree)
+    tree_growth(x, canvas)
 
 SIMPLE_GLYPHS = {
     "line": horizontal_line,
@@ -662,4 +673,7 @@ ADVANCED_GLYPHS = {
     "ripple_wave": ripple_wave_glyph,
     "tree_growth_gamma": tree_growth_gamma,
     "sun_cc": sun_graph_cc,
+    "tree_growth_cc": tree_growth_cc,
 }
+
+outpath = os.path.join(os.getcwd(), "exported_glyphs")
