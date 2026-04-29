@@ -11,8 +11,8 @@ from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 # -------------------- CONFIG --------------------
-#MODE = "same_data"  
-MODE = "model_inliers"
+MODE = "same_data"  
+#MODE = "model_inliers"
 
 BASE_INPUT_DIR_SAME = os.path.join(PATH, "same_data_comparison")
 BASE_INPUT_DIR_INLIERS = os.path.join(PATH, "filtered_inliers")
@@ -26,6 +26,7 @@ OUTPUT_DIR = os.path.join(PATH, "err_err_plots", MODE)
 
 FILENAME = os.path.join(BASE_INPUT_DIR_SAME, INPUT_FILES[MODE]) if MODE == "same_data" else os.path.join(BASE_INPUT_DIR_INLIERS, INPUT_FILES[MODE])
 
+AXIS_MAX = 10.0 
 
 # -------------------- LOAD DATA --------------------
 def open_file(filename=FILENAME):
@@ -118,8 +119,8 @@ def error_error_plot(results, glyph, title, output, global_max):
     ax.set_xlabel("Průměrná neznaménková chyba - $u$")
     ax.set_ylabel("Průměrná znaménková chyba - $|s|$")
 
-    ax.set_xlim(0, global_max + 0.5)
-    ax.set_ylim(0, global_max + 0.5)
+    ax.set_xlim(0, AXIS_MAX)
+    ax.set_ylim(0, AXIS_MAX)
     ax.set_aspect("equal", adjustable="box")
 
     ax.title.set_text(glyph.capitalize().replace("_", " "))

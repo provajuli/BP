@@ -672,9 +672,8 @@ ADVANCED_GLYPHS = {
     "beer": beer_glyph,
     "candle": candle_glyph,
     "ripple_wave": ripple_wave_glyph,
-    "tree_growth_gamma": tree_growth_gamma,
     "sun_cc": sun_graph_cc,
-    "tree_growth_cc": tree_growth_cc,
+    #"tree_growth_cc": tree_growth_cc,
 }
 
 outpath = os.path.join(os.getcwd(), "exported_glyphs")

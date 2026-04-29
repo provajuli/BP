@@ -31,7 +31,6 @@ SAVE_RESULTS_CSV_IN = True
 SAVE_RESULTS_CSV_SAME_DATA = True
 SAVE_SAME_DATA_BEAK_PLOTS = True
 PLOT_GLYPH_DEVIATIONS = True
-GLYPH_DEVIATION_FILTER_OUTLIERS = True
 
 ROBUST_LOSS = "soft_l1"
 ROBUST_F_SCALE = 0.03
@@ -124,22 +123,6 @@ def gamma_stats_per_glyph_type(glyph_types, a, b, c):
     return rows
 
 
-def plot_gamma_model(rows, outpath):
-    x = np.linspace(0, 1, 200)
-    plt.figure(figsize=(8, 6))
-    for label, n, gamma in rows:
-        y = x**gamma
-        plt.plot(x, y, label=f"{label} (gamma={gamma:.2f}, N={n})")
-    plt.xlabel("Physical size (normalized 0-1)")
-    plt.ylabel("Perceived size (normalized 0-1)")
-    plt.title("Perceived Size vs Physical Size — Gamma model")
-    plt.grid(linestyle="--", alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(outpath, dpi=120, bbox_inches="tight")
-    plt.close()
-
-
 #####################################################################
 # --------------------POLY3 OMEZENA MODEL FUNKCE---------------------
 #####################################################################
@@ -227,21 +210,6 @@ def cubic_constrained_stats_by_glyph(glyph_types, a, b, c):
         rows.append((t.capitalize(), int(np.sum(m)), 0.0, bt, ct, 1.0 - bt - ct))
     return rows
 
-
-def plot_cubic_constrained_model(rows, outpath):
-    x = np.linspace(0, 1, 200)
-    plt.figure(figsize=(8, 6))
-    for label, n, a0, b, c, d in rows:
-        y = cubic_constrained_function(x, b, c)
-        plt.plot(x, y, label=f"{label} (b={b:.2f}, c={c:.2f}, N={n})")
-    plt.xlabel("x (normalized)")
-    plt.ylabel("y (perceived)")
-    plt.title("Poly3 constrained: y = b x + c x² + (1-b-c) x³")
-    plt.grid(linestyle="--", alpha=0.3)
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig(outpath, dpi=120, bbox_inches="tight")
-    plt.close()
 
 #####################################################
 # --------------------BEAK PLOTS---------------------
@@ -420,9 +388,8 @@ def beak_plot_for_glyph(function, A, B, C, title, axis, mask=None, plot_outliers
 
     axis.set_xlim(0, 1)
     axis.set_ylim(0, 1)
-    axis.set_xlabel("PHYSICAL (normalized to [0,1])")
-    axis.set_ylabel("PERCEIVED (normalized to [0,1])")
-    axis.set_title(title)
+    axis.set_xlabel("Fyzická škála [norm. 0-1]")
+    axis.set_ylabel("Percepční škála [norm. 0-1]")
     axis.grid(linestyle='--', alpha=0.3)
 
 
@@ -474,120 +441,6 @@ def fit_poly3c_model(A, B, C, outliers_pct=0.0):
     mask = mask_for_model(A, B, C, f, outliers_pct)
     return (b, c), mask
 
-# -------------------- PCHIP SPLINE MODEL (flexibilní K) --------------------
-PCHIP_INV_GRID = 4000
-PCHIP_DEFAULT_K = 4
-
-def pchip_xk(K):
-    return np.linspace(0.0, 1.0, int(K), dtype=float)
-
-
-def params_to_yk_general(z, K):
-    z = np.asarray(z, float)
-    if z.shape[0] != (K - 1):
-        raise ValueError(f"z musí mít délku {K-1} pro K={K}")
-
-    d = z * z
-    S = np.sum(d) + 1e-12
-    cum = np.cumsum(d) / S
-
-    yk = np.empty(K, float)
-    yk[0] = 0.0
-    yk[1:] = cum
-    yk[-1] = 1.0
-    return yk
-
-
-def make_f_pchip_K(z, K):
-    XK = pchip_xk(K)
-    yk = params_to_yk_general(z, K)
-    interp = PchipInterpolator(XK, yk, extrapolate=True)
-
-    def f(x):
-        x = np.clip(np.asarray(x, float), 0.0, 1.0)
-        return np.clip(interp(x), 0.0, 1.0)
-
-    return f, XK, yk
-
-
-def invert_monotone_f(f, y, grid_n=PCHIP_INV_GRID):
-    y = np.asarray(y, float)
-    xg = np.linspace(0.0, 1.0, grid_n)
-    yg = f(xg)
-
-    yg = np.maximum.accumulate(yg)
-
-    idx = np.searchsorted(yg, y, side="left")
-    idx = np.clip(idx, 1, grid_n - 1)
-
-    x0, x1 = xg[idx - 1], xg[idx]
-    y0, y1 = yg[idx - 1], yg[idx]
-
-    t = np.where(np.abs(y1 - y0) > 1e-12, (y - y0) / (y1 - y0), 0.0)
-    return x0 + t * (x1 - x0)
-
-
-def predict_b_pchip_K(z, A, C, K):
-    f, _, _ = make_f_pchip_K(z, K)
-    target = 0.5 * (f(A) + f(C))
-    return invert_monotone_f(f, target)
-
-
-def residuals_pchip_K(z, A, B, C, K):
-    return predict_b_pchip_K(z, A, C, K) - B
-
-
-def fit_pchip_K(A, B, C, K, robust=False):
-    z0 = np.ones(K - 1, float)
-    if robust:
-        res = least_squares(
-            lambda zz: residuals_pchip_K(zz, A, B, C, K),
-            x0=z0,
-            loss=ROBUST_LOSS,
-            f_scale=ROBUST_F_SCALE,
-            max_nfev=6000
-        )
-    else:
-        res = least_squares(
-            lambda zz: residuals_pchip_K(zz, A, B, C, K),
-            x0=z0,
-            max_nfev=6000
-        )
-    return res.x
-
-
-def fit_pchip_model_K(A, B, C, K, outliers_pct=0.0):
-    z = fit_pchip_K(A, B, C, K, robust=False)
-    f, _, _ = make_f_pchip_K(z, K)
-
-    if outliers_pct <= 0.0:
-        mask = np.ones(len(A), dtype=bool)
-        return z, mask
-
-    mask = mask_for_model(A, B, C, f, outliers_pct)
-
-    z = fit_pchip_K(A[mask], B[mask], C[mask], K, robust=False)
-    f, _, _ = make_f_pchip_K(z, K)
-
-    mask = mask_for_model(A, B, C, f, outliers_pct)
-    return z, mask
-
-
-def robust_metrics_pchip_K(A, B, C, K, outliers_pct=OUTLIERS_PCT):
-    z_final, mask_in = fit_pchip_model_K(A, B, C, K, outliers_pct=outliers_pct)
-    f, XK, yk = make_f_pchip_K(z_final, K)
-
-    metrics = compute_beak_error(
-        A[mask_in], B[mask_in], C[mask_in],
-        f, outliers=False, outliers_pct=outliers_pct
-    )
-
-    metrics["n_total"] = len(A)
-    metrics["K"] = int(K)
-    for i, val in enumerate(yk):
-        metrics[f"yk_{i}"] = float(val)
-    return metrics
-
 
 ####################################################
 # --------- SAME-DATA / FAIR-COMPARISON FITS -------
@@ -603,11 +456,6 @@ def fit_poly3c_same_data(A, B, C):
     f = lambda x: cubic_constrained_function(x, b, c)
     return (b, c), f
 
-def fit_pchip_same_data(A, B, C, K=PCHIP_DEFAULT_K):
-    z = fit_pchip_K(A, B, C, K, robust=True)
-    f, XK, yk = make_f_pchip_K(z, K)
-    return z, f, XK, yk
-
 
 def same_data_metrics(A, B, C, function):
     return compute_beak_error(
@@ -620,6 +468,11 @@ def same_data_metrics(A, B, C, function):
 ####################################################
 # --------------------BEAK PLOTS--------------------
 ####################################################
+
+def pretty_glyph_name(glyph):
+    return glyph.capitalize().replace("_", " ")
+
+
 def beak_plot_models_for_glyph(
     glyph,
     glyph_types,
@@ -633,17 +486,19 @@ def beak_plot_models_for_glyph(
     A_g, B_g, C_g = A[m], B[m], C[m]
 
     mask_pct = plot_mask_pct if plot_outliers else outliers_pct
-
     models = []
 
     # Linear
     f_lin = lambda x: x
-    mask_lin = np.ones(len(A_g), bool) if mask_pct <= 0 else \
-        mask_for_model(A_g, B_g, C_g, f_lin, mask_pct)
+    mask_lin = (
+        np.ones(len(A_g), bool)
+        if mask_pct <= 0
+        else mask_for_model(A_g, B_g, C_g, f_lin, mask_pct)
+    )
 
     models.append((
         "linear",
-        "Linear, y=x",
+        r"$y = x$",
         f_lin,
         mask_lin
     ))
@@ -655,7 +510,7 @@ def beak_plot_models_for_glyph(
 
     models.append((
         "gamma",
-        f"Gamma, y=x^γ, γ={gamma:.3f}",
+        rf"$y = x^{{\gamma}},\ \gamma = {gamma:.3f}$",
         f_gam,
         mask_gam
     ))
@@ -667,36 +522,10 @@ def beak_plot_models_for_glyph(
 
     models.append((
         "poly3c",
-        f"Poly3 constrained, b={b:.3f}, c={c:.3f}",
+        rf"$y={b:.3f}x + {c:.3f}x^2 + (1-b-c)x^3$",
         f_cc,
         mask_cc
     ))
-
-    # Spline K=4
-    K0 = PCHIP_DEFAULT_K
-    z0, _ = fit_pchip_model_K(A_g, B_g, C_g, K0, outliers_pct=outliers_pct)
-    f_p0, XK0, yk0 = make_f_pchip_K(z0, K0)
-    mask_p0 = mask_for_model(A_g, B_g, C_g, f_p0, mask_pct)
-
-    models.append((
-        f"spline_K{K0}",
-        f"Spline (K={K0}), params={K0-1}",
-        f_p0,
-        mask_p0
-    ))
-
-    # Spline demo K=9, K=15
-    for K in [9, 15]:
-        zK, _ = fit_pchip_model_K(A_g, B_g, C_g, K, outliers_pct=outliers_pct)
-        fK, XK, yk = make_f_pchip_K(zK, K)
-        maskK = mask_for_model(A_g, B_g, C_g, fK, mask_pct)
-
-        models.append((
-            f"spline_K{K}",
-            f"Spline (K={K}), params={K-1}",
-            fK,
-            maskK
-        ))
 
     ensure_dir(outdir)
 
@@ -717,7 +546,7 @@ def beak_plot_models_for_glyph(
         )
 
         fig.suptitle(
-            f"{glyph.capitalize().replace('_', ' ')} — {title}",
+            rf"{pretty_glyph_name(glyph)} — {title}",
             fontsize=14
         )
 
@@ -747,22 +576,57 @@ def beak_plot_same_data_for_glyph(
     gamma, f_gam = fit_gamma_same_data(A_g, B_g, C_g)
     (b, c), f_cc = fit_poly3c_same_data(A_g, B_g, C_g)
 
-    fig, axes = plt.subplots(2, 2, figsize=(18, 12), sharex=True, sharey=True)
-    fig.suptitle(
-        f"Same-data comparison for glyph: {glyph.capitalize().replace('_', ' ')}",
-        fontsize=16
-    )
-
     full_mask = np.ones(len(A_g), dtype=bool)
 
-    beak_plot_for_glyph(f_lin, A_g, B_g, C_g, "Linear", axes[0, 0], mask=full_mask, plot_outliers=False)
-    beak_plot_for_glyph(f_gam, A_g, B_g, C_g, f"Gamma, γ={gamma:.3f}", axes[0, 1], mask=full_mask, plot_outliers=False)
-    beak_plot_for_glyph(f_cc, A_g, B_g, C_g, f"Poly3c, b={b:.3f}, c={c:.3f}", axes[1, 0], mask=full_mask, plot_outliers=False)
+    models = [
+        (
+            "linear",
+            r"Lineární model, $y = x$",
+            f_lin
+        ),
+        (
+            "gamma",
+            rf"$y = x^{{\gamma}},\ \gamma = {gamma:.3f}$",
+            f_gam
+        ),
+        (
+            "poly3c",
+            rf"$y = x^3 + {b:.3f}x + {c:.3f}$",
+            f_cc
+        )
+    ]
 
-    plt.tight_layout()
     ensure_dir(outdir)
-    plt.savefig(os.path.join(outdir, f"same_data_beak_{glyph}.png"), dpi=120)
-    plt.close()
+
+    for model_name, title, function in models:
+        fig, ax = plt.subplots(figsize=(8, 6))
+
+        beak_plot_for_glyph(
+            function,
+            A_g, B_g, C_g,
+            title,
+            ax,
+            mask=full_mask,
+            plot_outliers=False
+        )
+
+        fig.suptitle(
+            rf"{pretty_glyph_name(glyph)} — {title}",
+            fontsize=14,
+            y=0.96
+        )
+
+        plt.tight_layout()
+
+        output_path = os.path.join(
+            outdir,
+            f"same_data_beak_{glyph}_{model_name}.png"
+        )
+
+        plt.savefig(output_path, dpi=150, bbox_inches="tight")
+        plt.close(fig)
+
+        print(f"[ok] saved {output_path}")
 
 
 ####################################################
@@ -833,108 +697,125 @@ def save_same_data_comparison_csv(glyph_types, sizeA, sizeB, sizeC):
             metrics_cc = same_data_metrics(A_g, B_g, C_g, f_cc)
             f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f},{b:.6f},{c:.6f},\n")
 
-            z, f_p, XK, yk = fit_pchip_same_data(A_g, B_g, C_g, K=PCHIP_DEFAULT_K)
-            metrics_p = same_data_metrics(A_g, B_g, C_g, f_p)
-            y1 = yk[1] if len(yk) > 1 else np.nan
-            y2 = yk[2] if len(yk) > 2 else np.nan
-            f.write(f"{g},pchip,{metrics_p['unsigned_euclidean_sum']:.3f},{metrics_p['signed_euclidean_sum']:.3f},{metrics_p['n']},{metrics_p['avg_unsigned']:.5f},{metrics_p['avg_signed']:.5f},{y1:.6f},{y2:.6f},{len(z)}\n")
-
     print(f"[ok] Results saved to {SAME_DATA_OUTPUT_FILE_CSV}")
 
 
 ####################################################
 # ----------------GLYPH DEVIATIONS------------------
 ####################################################
-def glyph_deviations(glyph_types, sizeA, sizeB, sizeC, outliers_pct=OUTLIERS_PCT, filter_outliers=True):
+def glyph_deviations(glyph_types, sizeA, sizeB, sizeC):
     df = pd.DataFrame({
-        'glyph_type': glyph_types,
-        'sizeA': sizeA,
-        'sizeB': sizeB,
-        'sizeC': sizeC,
+        "glyph_type": glyph_types,
+        "sizeA": sizeA,
+        "sizeB": sizeB,
+        "sizeC": sizeC,
     })
-    df['arith_mean'] = (df['sizeA'] + df['sizeC']) / 2
-    df['geom_mean']  = np.sqrt(df['sizeA'] * df['sizeC'])
-    df['diff_arith'] = df['sizeB'] - df['arith_mean']
-    df['diff_geom']  = df['sizeB'] - df['geom_mean']
 
-    def remove_outliers_by_deviation(group, pct):
-        threshold = np.percentile(np.abs(group['diff_arith']), 100 - pct)
-        return group[np.abs(group['diff_arith']) <= threshold]
+    df["arith_mean"] = (df["sizeA"] + df["sizeC"]) / 2
+    df["geom_mean"] = np.sqrt(df["sizeA"] * df["sizeC"])
 
-    if filter_outliers:
-        parts = []
-        for glyph, group in df.groupby('glyph_type'):
-            parts.append(remove_outliers_by_deviation(group, outliers_pct))
-        df_filtered = pd.concat(parts).reset_index(drop=True)
-    else:
-        df_filtered = df.copy()
+    df["diff_arith"] = df["sizeB"] - df["arith_mean"]
+    df["diff_geom"] = df["sizeB"] - df["geom_mean"]
 
-    n_before = len(df)
-    n_after = len(df_filtered)
-    if filter_outliers:
-        print(f"\n[info] Odstraneno {n_before - n_after} outliers "
-              f"({outliers_pct} % per glyph), "
-              f"zbývá {n_after}/{n_before} odpovědí")
+    df["B_relative"] = (
+        (df["sizeB"] - df["sizeA"]) /
+        (df["sizeC"] - df["sizeA"] + 1e-9)
+    ).clip(0, 1)
 
-    summary = df_filtered.groupby('glyph_type').agg(
-        n=('sizeB', 'count'),
-        prumer_odchylky_arith=('diff_arith', 'mean'),
-        std_arith=('diff_arith', 'std'),
-        prumer_odchylky_geom=('diff_geom', 'mean'),
-        std_geom=('diff_geom', 'std'),
+    summary = df.groupby("glyph_type").agg(
+        n=("sizeB", "count"),
+        prumer_odchylky_arith=("diff_arith", "mean"),
+        std_arith=("diff_arith", "std"),
+        prumer_odchylky_geom=("diff_geom", "mean"),
+        std_geom=("diff_geom", "std"),
+        prumer_B_relative=("B_relative", "mean"),
+        std_B_relative=("B_relative", "std"),
     ).round(4)
 
     print("\n=== Odchylky od aritmetickeho a geometrickeho stredu ===")
-    print(f"{'Glyph':<25} {'N':<6} {'avg_arith':<12} {'std_arith':<12} "
-          f"{'avg_geom':<12} {'std_geom':<12}")
-    print("-" * 80)
+    print(
+        f"{'Glyph':<25} {'N':<6} "
+        f"{'avg_arith':<12} {'std_arith':<12} "
+        f"{'avg_geom':<12} {'std_geom':<12} "
+        f"{'avg_B_rel':<12} {'std_B_rel':<12}"
+    )
+    print("-" * 110)
+
     for name, row in summary.iterrows():
-        print(f"{name:<25} {int(row['n']):<6} {row['prumer_odchylky_arith']:<12.4f} "
-              f"{row['std_arith']:<12.4f} {row['prumer_odchylky_geom']:<12.4f} "
-              f"{row['std_geom']:<12.4f}")
-
-    glyph_list = df_filtered['glyph_type'].value_counts().index.tolist()
-    ncols = 3
-    nrows = int(np.ceil(len(glyph_list) / ncols))
-    fig, axes = plt.subplots(nrows, ncols, figsize=(15, nrows * 4))
-    axes = axes.flatten()
-
-    for i, glyph in enumerate(glyph_list):
-        ax = axes[i]
-        subset_all = df[df['glyph_type'] == glyph]
-        subset_filtered = df_filtered[df_filtered['glyph_type'] == glyph]
-        diff = subset_filtered['diff_arith']
-        mean_diff = diff.mean()
-        std_diff = diff.std()
-        n_all = len(subset_all)
-        n_in = len(subset_filtered)
-
-        ax.hist(diff, bins=20, color='steelblue', edgecolor='white', alpha=0.85)
-        ax.axvline(0, color='black', linestyle='--', linewidth=1.2, label='Aritmetický střed')
-        ax.axvline(mean_diff, color='tomato', linestyle='-', linewidth=1.8, label=f'Průměr: {mean_diff:.3f}')
-        ax.set_title(f'{glyph}\n(n={n_in}/{n_all}, σ={std_diff:.3f})', fontsize=11)
-        ax.set_xlabel('Odchylka od aritmetického středu', fontsize=9)
-        ax.set_ylabel('Počet odpovědí', fontsize=9)
-        ax.legend(fontsize=8)
-        ax.spines['top'].set_visible(False)
-        ax.spines['right'].set_visible(False)
-
-    for j in range(i + 1, len(axes)):
-        axes[j].set_visible(False)
-
-    fig.suptitle(
-        f'Odchylky odpovědí od aritmetického středu podle typu glyphu '
-        f'(odstraněno {outliers_pct} % outlierů)',
-        fontsize=14, fontweight='bold', y=1.01)
-    plt.tight_layout()
+        print(
+            f"{name:<25} {int(row['n']):<6} "
+            f"{row['prumer_odchylky_arith']:<12.4f} "
+            f"{row['std_arith']:<12.4f} "
+            f"{row['prumer_odchylky_geom']:<12.4f} "
+            f"{row['std_geom']:<12.4f} "
+            f"{row['prumer_B_relative']:<12.4f} "
+            f"{row['std_B_relative']:<12.4f}"
+        )
 
     ensure_dir(IMAGES_OUTPUT_DIR)
-    plt.savefig(os.path.join(IMAGES_OUTPUT_DIR, 'glyph_deviations.png'),
-                bbox_inches='tight', dpi=150)
-    plt.savefig(os.path.join(IMAGES_OUTPUT_DIR, 'glyph_deviations.pdf'),
-                bbox_inches='tight', dpi=150)
-    plt.close()
-    print("[ok] glyph_deviations.png/.pdf")
+
+    glyph_list = df["glyph_type"].value_counts().index.tolist()
+
+    for glyph in glyph_list:
+        subset = df[df["glyph_type"] == glyph].copy()
+
+        diff = subset["diff_arith"]
+        mean_diff = diff.mean()
+        std_diff = diff.std()
+        n = len(subset)
+
+        fig, ax = plt.subplots(figsize=(8, 5))
+
+        ax.hist(
+            diff,
+            bins=20,
+            color="steelblue",
+            edgecolor="white",
+            alpha=0.85
+        )
+
+        ax.axvline(
+            0,
+            color="black",
+            linestyle="--",
+            linewidth=1.2,
+            label="Aritmetický střed"
+        )
+
+        ax.axvline(
+            mean_diff,
+            color="tomato",
+            linestyle="-",
+            linewidth=1.8,
+            label=f"Průměr: {mean_diff:.3f}"
+        )
+
+        ax.set_xlabel("B - aritmetický střed")
+        ax.set_ylabel("Počet odpovědí")
+
+        ax.legend(fontsize=9)
+        ax.grid(linestyle="--", alpha=0.3)
+
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+        fig.suptitle(
+            f"{pretty_glyph_name(glyph)} — glyph deviations\n"
+            rf"n={n}, $\sigma={std_diff:.3f}$",
+            fontsize=14
+        )
+
+        plt.tight_layout()
+
+        output_pdf = os.path.join(
+            IMAGES_OUTPUT_DIR,
+            f"glyph_deviations_{glyph}.pdf"
+        )
+
+        plt.savefig(output_pdf, bbox_inches="tight", dpi=150)
+        plt.close(fig)
+
+        print(f"[ok] saved {output_pdf}")
 
 
 ###############################################
@@ -950,11 +831,7 @@ def main():
 
     if PLOT_GLYPH_DEVIATIONS:
         print("\n[run] Glyph deviations from arithmetic mean")
-        glyph_deviations(
-            glyph_types, a, b, c,
-            outliers_pct=OUTLIERS_PCT,
-            filter_outliers=GLYPH_DEVIATION_FILTER_OUTLIERS
-        )
+        glyph_deviations(glyph_types, a, b, c)
 
     if SAVE_OUTLIER_BEAK_PLOTS:
         print("\n[run] Beak plots with outliers per glyph (model-specific)")
@@ -999,14 +876,9 @@ def main():
                 f_cc = lambda x: cubic_constrained_function(x, b_fit, c_fit)
                 metrics_cc = compute_beak_error(A_g, B_g, C_g, f_cc, outliers=True)
 
-                z_fit = fit_pchip_K(A_g, B_g, C_g, K=PCHIP_DEFAULT_K, robust=False)
-                f_p, _, _ = make_f_pchip_K(z_fit, PCHIP_DEFAULT_K)
-                metrics_pchip = compute_beak_error(A_g, B_g, C_g, f_p, outliers=True)
-
                 f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n']},{metrics_lin['avg_unsigned']:.5f},{metrics_lin['avg_signed']:.5f}\n")
                 f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
                 f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
-                f.write(f"{g},pchip,{metrics_pchip['unsigned_euclidean_sum']:.3f},{metrics_pchip['signed_euclidean_sum']:.3f},{metrics_pchip['n']},{metrics_pchip['avg_unsigned']:.5f},{metrics_pchip['avg_signed']:.5f}\n")
 
         print(f"[ok] Results saved to {OUTLIER_OUTPUT_FILE_CSV}")
 
@@ -1047,20 +919,9 @@ def main():
                     outliers_pct=0.0
                 )
 
-                z_final, mask_in_p = fit_pchip_model_K(A_g, B_g, C_g, K=PCHIP_DEFAULT_K, outliers_pct=OUTLIERS_PCT)
-                f_p, _, _ = make_f_pchip_K(z_final, PCHIP_DEFAULT_K)
-                metrics_pchip = compute_beak_error(
-                    A_g[mask_in_p], B_g[mask_in_p], C_g[mask_in_p],
-                    f_p,
-                    outliers=False,
-                    outliers_pct=0.0
-                )
-
                 f.write(f"{g},linear,{metrics_lin['unsigned_euclidean_sum']:.3f},{metrics_lin['signed_euclidean_sum']:.3f},{metrics_lin['n']},{metrics_lin['avg_unsigned']:.5f},{metrics_lin['avg_signed']:.5f}\n")
                 f.write(f"{g},gamma,{metrics_gam['unsigned_euclidean_sum']:.3f},{metrics_gam['signed_euclidean_sum']:.3f},{metrics_gam['n']},{metrics_gam['avg_unsigned']:.5f},{metrics_gam['avg_signed']:.5f}\n")
                 f.write(f"{g},poly3c,{metrics_cc['unsigned_euclidean_sum']:.3f},{metrics_cc['signed_euclidean_sum']:.3f},{metrics_cc['n']},{metrics_cc['avg_unsigned']:.5f},{metrics_cc['avg_signed']:.5f}\n")
-                f.write(f"{g},pchip,{metrics_pchip['unsigned_euclidean_sum']:.3f},{metrics_pchip['signed_euclidean_sum']:.3f},{metrics_pchip['n']},{metrics_pchip['avg_unsigned']:.5f},{metrics_pchip['avg_signed']:.5f}\n")
-
         print(f"[ok] Results saved to {INLIER_OUTPUT_FILE_CSV}")
 
     if SAVE_RESULTS_CSV_SAME_DATA:
