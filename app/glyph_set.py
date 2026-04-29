@@ -626,8 +626,8 @@ GAMMA = 1.5
 B_sun = 1.2
 #C = -1.902
 #C = -1.816
-C_sun = -1.85
-#C_sun = -2.38
+#C_sun = -1.85
+C_sun = -2.38
 
 B_tree = 0.455
 C_tree = 0.040
@@ -665,13 +665,13 @@ SIMPLE_GLYPHS = {
 }
 
 ADVANCED_GLYPHS = {
-    "sun": sun_graph,
-    "tree_growth": tree_growth,
-    "flower": flower,
-    "circular_progressbar": circular_progressbar_ticks_color,
-    "beer": beer_glyph,
-    "candle": candle_glyph,
-    "ripple_wave": ripple_wave_glyph,
+    #"sun": sun_graph,
+    #"tree_growth": tree_growth,
+    #"flower": flower,
+    #"circular_progressbar": circular_progressbar_ticks_color,
+    #"beer": beer_glyph,
+    #"candle": candle_glyph,
+    #"ripple_wave": ripple_wave_glyph,
     "sun_cc": sun_graph_cc,
     #"tree_growth_cc": tree_growth_cc,
 }

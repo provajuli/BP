@@ -9,7 +9,7 @@ from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 SEED = None
 random.seed(SEED)
-N = 20 # pocet opakovani kazdeho glyphu
+N = 100 # pocet opakovani kazdeho glyphu
 
 PATH = os.path.dirname(os.path.abspath(""))
 print(PATH)
@@ -17,7 +17,7 @@ print(PATH)
 EXPERIMENTAL_OUTPUT_DIR = os.path.join(PATH, "BP/data/user_data_sets/")
 
 # ZDE MUZE BYT VOLBA MEZI SIMPLE A ADVANCED GLYPHS
-USE_ADVANCED = False 
+USE_ADVANCED = True
 glyphs = {**ADVANCED_GLYPHS} if USE_ADVANCED else {**SIMPLE_GLYPHS}
 
 
