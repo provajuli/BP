@@ -128,7 +128,7 @@ def gamma_stats_per_glyph_type(glyph_types, a, b, c):
 #####################################################################
 CC_THETA0 = np.array([1.0, 0.0], dtype=float)
 CC_LOW    = np.array([0.0, -3], dtype=float)
-CC_HIGH   = np.array([1.5,  3], dtype=float)
+CC_HIGH   = np.array([1.2,  3], dtype=float)
 
 def cubic_constrained_function(x, b_par, c_par):
     x = np.asarray(x, float)
@@ -510,7 +510,7 @@ def beak_plot_models_for_glyph(
 
     models.append((
         "gamma",
-        rf"$y = x^{{\gamma}},\ \gamma = {gamma:.3f}$",
+        rf"$y = x^{{\gamma}},\ \gamma = {gamma:.2f}$",
         f_gam,
         mask_gam
     ))
@@ -522,7 +522,7 @@ def beak_plot_models_for_glyph(
 
     models.append((
         "poly3c",
-        rf"$y={b:.3f}x + {c:.3f}x^2 + (1-b-c)x^3$",
+        rf"$y={b:.2f}x + {c:.2f}x^2 + (1-{b:.2f}-{c:.2f})x^3$",
         f_cc,
         mask_cc
     ))
@@ -581,17 +581,17 @@ def beak_plot_same_data_for_glyph(
     models = [
         (
             "linear",
-            r"Lineární model, $y = x$",
+            r"$y = x$",
             f_lin
         ),
         (
             "gamma",
-            rf"$y = x^{{\gamma}},\ \gamma = {gamma:.3f}$",
+            rf"$y = x^{{\gamma}},\ \gamma = {gamma:.2f}$",
             f_gam
         ),
         (
             "poly3c",
-            rf"$y = x^3 + {b:.3f}x + {c:.3f}$",
+            rf"$y={b:.2f}x + {c:.2f}x^2 + (1-{b:.2f}-{c:.2f})x^3$",
             f_cc
         )
     ]

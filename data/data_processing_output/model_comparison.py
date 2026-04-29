@@ -11,8 +11,8 @@ from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 PATH = os.path.dirname(os.path.abspath(__file__))
 # -------------------- CONFIG --------------------
-MODE = "same_data"  
-#MODE = "model_inliers"
+#MODE = "same_data"  
+MODE = "model_inliers"
 
 BASE_INPUT_DIR_SAME = os.path.join(PATH, "same_data_comparison")
 BASE_INPUT_DIR_INLIERS = os.path.join(PATH, "filtered_inliers")
