@@ -9,7 +9,7 @@ from glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 SEED = None
 random.seed(SEED)
-N = 100 # pocet opakovani kazdeho glyphu
+N = 50 # pocet opakovani kazdeho glyphu
 
 PATH = os.path.dirname(os.path.abspath(""))
 print(PATH)

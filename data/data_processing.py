@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from scipy.optimize import least_squares
 import csv
 import os
-from scipy.interpolate import PchipInterpolator
 import pandas as pd
 
 
@@ -388,8 +387,8 @@ def beak_plot_for_glyph(function, A, B, C, title, axis, mask=None, plot_outliers
 
     axis.set_xlim(0, 1)
     axis.set_ylim(0, 1)
-    axis.set_xlabel("Fyzická škála [norm. 0-1]")
-    axis.set_ylabel("Percepční škála [norm. 0-1]")
+    axis.set_xlabel("Fyzická škála [norm. 0-1]", fontsize=18)
+    axis.set_ylabel("Percepční škála [norm. 0-1]", fontsize=18)
     axis.grid(linestyle='--', alpha=0.3)
 
 
@@ -546,9 +545,11 @@ def beak_plot_models_for_glyph(
         )
 
         fig.suptitle(
-            rf"{pretty_glyph_name(glyph)} — {title}",
-            fontsize=14
+            rf"{title}",
+            fontsize=16
         )
+
+        ax.tick_params(axis='both', which='major', labelsize=12)
 
         plt.tight_layout()
 

@@ -2,34 +2,47 @@ import csv
 import os
 import sys
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
-
-# ERR-ERR plots (model comparison on SAME data)
 
 sys.path.insert(0, '/home/jp/a_school/BP')
 from app.glyph_set import SIMPLE_GLYPHS, ADVANCED_GLYPHS
 
 PATH = os.path.dirname(os.path.abspath(__file__))
-# -------------------- CONFIG --------------------
-#MODE = "same_data"  
-MODE = "model_inliers"
 
 BASE_INPUT_DIR_SAME = os.path.join(PATH, "same_data_comparison")
 BASE_INPUT_DIR_INLIERS = os.path.join(PATH, "filtered_inliers")
 
-INPUT_FILES = {
-    "same_data": "same_data_model_comparison.csv",
-    "model_inliers": "inliers_model_comparison.csv",
+SAME_DATA_FILE = os.path.join(BASE_INPUT_DIR_SAME, "same_data_model_comparison.csv")
+INLIERS_FILE = os.path.join(BASE_INPUT_DIR_INLIERS, "inliers_model_comparison.csv")
+
+OUTPUT_DIR = os.path.join(PATH, "err_err_plots", "combined")
+AXIS_MAX = 10.0
+
+COLORS = {
+    "linear": "blue",
+    "gamma": "green",
+    "poly3c": "red",
 }
 
-OUTPUT_DIR = os.path.join(PATH, "err_err_plots", MODE)
+LABELS = {
+    "linear": "Lineární",
+    "gamma": "Gamma",
+    "poly3c": "Polynomický",
+}
 
-FILENAME = os.path.join(BASE_INPUT_DIR_SAME, INPUT_FILES[MODE]) if MODE == "same_data" else os.path.join(BASE_INPUT_DIR_INLIERS, INPUT_FILES[MODE])
+MARKERS = {
+    "inliers": "o",
+    "same_data": "X",
+}
 
-AXIS_MAX = 10.0 
+DATASET_LABELS = {
+    "inliers": "Inliers",
+    "same_data": "Stejná data",
+}
 
-# -------------------- LOAD DATA --------------------
-def open_file(filename=FILENAME):
+
+def open_file(filename):
     results = []
     with open(filename, "r", newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -38,35 +51,7 @@ def open_file(filename=FILENAME):
     return results
 
 
-COLORS = {
-    "linear": "blue",
-    "gamma": "green",
-    "poly3c": "red",
-    "pchip": "orange"
-}
-
-LABELS = {
-    "linear": "Lineární",
-    "gamma": "Gamma",
-    "poly3c": "Polynomický",
-    "pchip": "Spline"
-}
-
-
-# -------------------- METRICS --------------------
-def compute_global_max(results):
-    global_max = 0.0
-    for r in results:
-        x = float(r["avg_unsigned"]) * 100
-        y = abs(float(r["avg_signed"])) * 100
-        global_max = max(global_max, x, y)
-    return global_max
-
-
 def compute_ranking_score(results):
-    """
-    R = sqrt(u^2 + s^2)
-    """
     scores = {}
 
     for r in results:
@@ -75,7 +60,6 @@ def compute_ranking_score(results):
 
         u = float(r["avg_unsigned"]) * 100
         s = abs(float(r["avg_signed"])) * 100
-
         R = np.sqrt(u * u + s * s)
 
         if glyph not in scores:
@@ -85,49 +69,73 @@ def compute_ranking_score(results):
 
     return scores
 
+def export_to_file(data, filename):
+    with open(filename, "w", newline="", encoding="utf-8") as f:
+        fieldnames = ["glyph_type", "model", "data", "avg_unsigned", "avg_signed", "R"]
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(data)
 
-# -------------------- PLOT --------------------
-def error_error_plot(results, glyph, title, output, global_max):
+def error_error_plot_combined(same_results, inlier_results, glyph, output):
     fig, ax = plt.subplots(figsize=(8, 6))
 
-    scores = compute_ranking_score(results)
+    datasets = {
+        "inliers": inlier_results,
+        "same_data": same_results,
+    }
 
-    for model in COLORS.keys():
-        for r in results:
-            if r['glyph_type'] == glyph and r['model'] == model:
-                u = float(r["avg_unsigned"]) * 100
-                s = float(r["avg_signed"]) * 100
-                s_abs = abs(float(r["avg_signed"])) * 100
+    scores = {
+        "inliers": compute_ranking_score(inlier_results),
+        "same_data": compute_ranking_score(same_results),
+    }
 
-                R = scores.get(glyph, {}).get(model, None)
+    content = []
 
-                ax.scatter(
-                    u,
-                    s_abs,
-                    color=COLORS[model],
-                    label=f"{LABELS[model]} (R={R:.2f}, u={u:.2f}, s={s:.2f})",
-                    alpha=0.7,
-                    s=60
-                )
+    for dataset_name, results in datasets.items():
+        for model in COLORS.keys():
+            for r in results:
+                if r["glyph_type"] == glyph and r["model"] == model:
+                    u = float(r["avg_unsigned"]) * 100
+                    s = float(r["avg_signed"]) * 100
+                    s_abs = abs(s)
 
-    # osy
+                    R = scores[dataset_name].get(glyph, {}).get(model, None)
+
+                    content.append({
+                        "glyph_type": glyph,
+                        "model": model,
+                        "data": dataset_name,
+                        "avg_unsigned": u,
+                        "avg_signed": s,
+                        "R": R
+                    })
+
+                    ax.scatter(
+                        u,
+                        s_abs,
+                        color=COLORS[model],
+                        marker=MARKERS[dataset_name],
+                        label=LABELS[model],
+                        alpha=0.75,
+                        s=75
+                    )
+
     ax.spines["left"].set_position("zero")
     ax.spines["bottom"].set_position("zero")
     ax.spines["right"].set_color("none")
     ax.spines["top"].set_color("none")
 
-    ax.set_xlabel("Průměrná neznaménková chyba - $u$")
-    ax.set_ylabel("Průměrná znaménková chyba - $|s|$")
+    ax.set_xlabel("Průměrná neznaménková chyba - $u$", fontsize=12)
+    ax.set_ylabel("Průměrná znaménková chyba - $|s|$", fontsize=12)
 
     ax.set_xlim(0, AXIS_MAX)
     ax.set_ylim(0, AXIS_MAX)
     ax.set_aspect("equal", adjustable="box")
 
-    ax.title.set_text(glyph.capitalize().replace("_", " "))
-
+    #ax.set_title(glyph.capitalize().replace("_", " "))
     ax.grid(True, linestyle="--", alpha=0.2)
 
-    # -------------------- CONTOURS (R) --------------------
+    # Contours R
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
 
@@ -135,24 +143,69 @@ def error_error_plot(results, glyph, title, output, global_max):
         np.linspace(xmin, xmax, 300),
         np.linspace(ymin, ymax, 300)
     )
-
     Z = np.sqrt(X**2 + Y**2)
 
     levels = [1, 2, 4, 6, 8, 10]
     cs = ax.contour(X, Y, Z, levels=levels, linewidths=1, alpha=0.35)
     ax.clabel(cs, inline=True, fontsize=8, fmt="R=%g")
 
-    # legenda bez duplicit
     handles, labels = ax.get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
+
+    # legenda modelů podle barev
+    model_handles = [
+        Line2D(
+            [0], [0],
+            marker='o',
+            color='w',
+            markerfacecolor=COLORS[model],
+            markeredgecolor=COLORS[model],
+            markersize=8,
+            label=LABELS[model],
+            linestyle='None',
+        )
+        for model in COLORS.keys()
+    ]
+
+    # legenda datasetů podle markerů
+    dataset_handles = [
+        Line2D(
+            [0], [0],
+            marker='o',
+            color='gray',
+            markerfacecolor='gray',
+            markeredgecolor='gray',
+            markersize=8,
+            linestyle='None',
+            label='Filtrovaná'
+        ),
+        Line2D(
+            [0], [0],
+            marker='X',
+            color='gray',
+            markerfacecolor='gray',
+            markeredgecolor='gray',
+            markersize=8,
+            linestyle='None',
+            label='Stejná'
+        )
+    ]
+
+    legend1 = ax.legend(
+        handles=model_handles,
+        title="Modely",
+        fontsize="small",
+        title_fontsize="small",
+        loc="upper left"
+    )
+
+    ax.add_artist(legend1)
 
     ax.legend(
-        by_label.values(),
-        by_label.keys(),
+        handles=dataset_handles,
+        title="Data",
         fontsize="small",
-        title="Modely",
-        title_fontsize="medium",
-        loc="upper left",
+        title_fontsize="small",
+        loc="upper right"
     )
 
     fig.savefig(output, dpi=150, bbox_inches="tight")
@@ -160,31 +213,25 @@ def error_error_plot(results, glyph, title, output, global_max):
 
     print("Saved plot to", output)
 
+    return content
 
-# -------------------- MAIN --------------------
-results = open_file()
-global_max = compute_global_max(results)
-scores = compute_ranking_score(results)
+
+same_results = open_file(SAME_DATA_FILE)
+inlier_results = open_file(INLIERS_FILE)
 
 all_glyphs = list({**SIMPLE_GLYPHS, **ADVANCED_GLYPHS}.keys())
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
+all_content = []
+
 for g in all_glyphs:
-    error_error_plot(
-        results,
+    content = error_error_plot_combined(
+        same_results,
+        inlier_results,
         g,
-        g.capitalize(),
-        f"{OUTPUT_DIR}/{MODE}_error_error_{g}.png",
-        global_max
+        os.path.join(OUTPUT_DIR, f"combined_error_error_{g}.png")
     )
+    all_content.extend(content)
 
-# -------------------- PRINT RANKING --------------------
-print("\n=== MODEL RANKING (lower R = better) ===")
-
-for glyph, model_scores in scores.items():
-    ranking = sorted(model_scores.items(), key=lambda x: x[1])
-
-    print(f"\n{glyph}:")
-    for i, (model, score) in enumerate(ranking, start=1):
-        print(f"  {i}. {model:<10} R={score:.2f}")
+export_to_file(all_content, os.path.join(OUTPUT_DIR, f"combined_error_error_all_glyphs.csv"))
