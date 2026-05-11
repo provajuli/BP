@@ -10,12 +10,11 @@ EXCLUDED_DIRECTORY = os.path.join(PATH, "excluded")
 
 REPORT_FILE = os.path.join(PATH, "processing_report.csv")
 
-# prahy (jen pro tvrdé vyhazování)
 DROP_FILE_THRESHOLD = 0.30
 STUCK_VALUE_THRESHOLD = 0.50
 EDGE_RESPONSE_THRESHOLD = 0.30
 
-BETWEEN_TOL = 5.0  # jen diagnostika
+BETWEEN_TOL = 5.0 
 
 
 def validate_dataframe(df: pd.DataFrame, filename: str):
@@ -29,7 +28,6 @@ def validate_dataframe(df: pd.DataFrame, filename: str):
 
     df = df.copy()
 
-    # --- NUMERIC CLEAN ---
     for col in ["sizeA", "sizeB", "sizeC"]:
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
@@ -38,10 +36,6 @@ def validate_dataframe(df: pd.DataFrame, filename: str):
     if df.empty:
         return False, df, {}
 
-    # --------------------------------------------------
-    # HARD FILTER (řádkový)
-    # --------------------------------------------------
-    # 👉 pouze pokud chceš být extra safe
     mask_range = (
         df["sizeA"].between(1, 100) &
         df["sizeB"].between(1, 100) &
@@ -55,31 +49,15 @@ def validate_dataframe(df: pd.DataFrame, filename: str):
 
     range_invalid_rate = 1.0 - mask_range.mean()
 
-    # --------------------------------------------------
-    # DIAGNOSTIKA (NEMAŽE DATA)
-    # --------------------------------------------------
     lower = df_clean[["sizeA", "sizeC"]].min(axis=1) - BETWEEN_TOL
     upper = df_clean[["sizeA", "sizeC"]].max(axis=1) + BETWEEN_TOL
 
     mask_between = (df_clean["sizeB"] >= lower) & (df_clean["sizeB"] <= upper)
     between_violation_rate = 1.0 - mask_between.mean()
 
-    # --------------------------------------------------
-    # PARTICIPANT QUALITY (ROZHODUJE O FILE)
-    # --------------------------------------------------
     edge_rate = df_clean["sizeB"].isin([1, 100]).mean()
 
-    most_common_share = (
-        df_clean["sizeB"].value_counts(normalize=True).iloc[0]
-    )
-
-    # --------------------------------------------------
-    # FILE DECISION
-    # --------------------------------------------------
-    file_invalid = (
-        edge_rate > EDGE_RESPONSE_THRESHOLD or
-        most_common_share > STUCK_VALUE_THRESHOLD
-    )
+    file_invalid = edge_rate > EDGE_RESPONSE_THRESHOLD
 
     report = {
         "file": filename,
@@ -87,7 +65,6 @@ def validate_dataframe(df: pd.DataFrame, filename: str):
         "range_invalid_rate": round(range_invalid_rate, 3),
         "between_violation_rate": round(between_violation_rate, 3),
         "edge_rate": round(edge_rate, 3),
-        "most_common_share": round(most_common_share, 3),
         "kept": not file_invalid
     }
 
@@ -119,7 +96,7 @@ def sort_files():
         reports.append(report)
 
         if not is_valid:
-            print(f"[DROP] {filename} | edge={report['edge_rate']}, stuck={report['most_common_share']}")
+            print(f"[DROP] {filename} | edge={report['edge_rate']}")
             shutil.move(raw_path, excluded_path)
         else:
             print(
@@ -129,7 +106,6 @@ def sort_files():
             clean_df.to_csv(processed_path, index=False)
             os.remove(raw_path)
 
-    # uložit report
     if reports:
         df_report = pd.DataFrame(reports)
         df_report.to_csv(REPORT_FILE, index=False)
@@ -156,15 +132,17 @@ def merge_valid():
                 print(f"[WARN] {filename}: nelze načíst ({e})")
                 continue
 
-            # 👇 komentář s názvem souboru
             out.write(f"# {filename}\n")
 
-            # 👇 header jen jednou (u prvního souboru)
             df.to_csv(out, index=False, header=first)
 
             first = False
 
     print(f"[INFO] Sloučená data uložena: {merged_path}")
+    print(f"[INFO] Počet validních souborů: {len(files)}")
+    print(f"[INFO] Počet nevalidních souborů: {len(os.listdir(EXCLUDED_DIRECTORY))}")
+    print(f"[INFO] Celkový počet řádků ve všech souborech: {sum(pd.read_csv(os.path.join(PROCESSED_DIRECTORY, f)).shape[0] for f in files) + sum(pd.read_csv(os.path.join(EXCLUDED_DIRECTORY, f)).shape[0] for f in os.listdir(EXCLUDED_DIRECTORY) if f.endswith('.csv'))}")
+    print(f"[INFO] Celkový počet řádků v merged souboru: {sum(pd.read_csv(os.path.join(PROCESSED_DIRECTORY, f)).shape[0] for f in files)}")
 
 
 if __name__ == "__main__":

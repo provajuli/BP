@@ -665,15 +665,15 @@ SIMPLE_GLYPHS = {
 }
 
 ADVANCED_GLYPHS = {
-    #"sun": sun_graph,
-    #"tree_growth": tree_growth,
-    #"flower": flower,
-    #"circular_progressbar": circular_progressbar_ticks_color,
-    #"beer": beer_glyph,
-    #"candle": candle_glyph,
-    #"ripple_wave": ripple_wave_glyph,
+    "sun": sun_graph,
+    "tree_growth": tree_growth,
+    "flower": flower,
+    "circular_progressbar": circular_progressbar_ticks_color,
+    "beer": beer_glyph,
+    "candle": candle_glyph,
+    "ripple_wave": ripple_wave_glyph,
     "sun_cc": sun_graph_cc,
-    #"tree_growth_cc": tree_growth_cc,
+    "tree_growth_cc": tree_growth_cc,
 }
 
 outpath = os.path.join(os.getcwd(), "exported_glyphs")
